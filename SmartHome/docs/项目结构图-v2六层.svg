@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="680" height="480" viewBox="0 0 680 480" font-family="system-ui, -apple-system, 'Segoe UI', 'Microsoft YaHei', 'PingFang SC', sans-serif">
+<title>分布式智慧家居系统 v2.0 六层结构</title>
+<desc>云端、界面、节点层三种形态、接入中介层、用户现有电器、物理兜底</desc>
+<rect width="680" height="480" fill="#FFFFFF"/>
+
+<text x="48" y="24" dominant-baseline="central" font-size="13" font-weight="500" fill="#2C2C2A">v2.0 · 六层结构（虚线两层不属于我们）</text>
+
+<rect x="48" y="40" width="584" height="56" rx="10" fill="#E6F1FB" stroke="#185FA5" stroke-width="0.5"/>
+<text x="66" y="60" dominant-baseline="central" font-size="12" font-weight="500" fill="#042C53">云端</text>
+<text x="66" y="80" dominant-baseline="central" font-size="10" fill="#185FA5">我们做</text>
+<text x="140" y="68" dominant-baseline="central" font-size="11" fill="#185FA5">MQTT Broker · 规则引擎 · Web 仪表盘 · 异地通道 · AI 推理</text>
+
+<rect x="48" y="110" width="584" height="56" rx="10" fill="#E6F1FB" stroke="#185FA5" stroke-width="0.5"/>
+<text x="66" y="130" dominant-baseline="central" font-size="12" font-weight="500" fill="#042C53">界面</text>
+<text x="66" y="150" dominant-baseline="central" font-size="10" fill="#185FA5">我们做</text>
+<text x="140" y="138" dominant-baseline="central" font-size="11" fill="#185FA5">手机 PWA · Web 仪表盘 · 壁挂终端（旧手机 + 物理键）</text>
+
+<rect x="48" y="180" width="584" height="56" rx="10" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.5"/>
+<text x="66" y="200" dominant-baseline="central" font-size="12" font-weight="500" fill="#04342C">节点层</text>
+<text x="66" y="220" dominant-baseline="central" font-size="10" fill="#0F6E56">我们做</text>
+<text x="140" y="208" dominant-baseline="central" font-size="11" fill="#0F6E56">ESP32-C3 三种形态：GPIO 型（1–4 台）· 红外型（一屋）· 总线型（N 台）</text>
+
+<rect x="48" y="250" width="584" height="56" rx="10" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.5"/>
+<text x="66" y="270" dominant-baseline="central" font-size="12" font-weight="500" fill="#04342C">接入层</text>
+<text x="66" y="290" dominant-baseline="central" font-size="10" fill="#0F6E56">中介物</text>
+<text x="140" y="278" dominant-baseline="central" font-size="11" fill="#0F6E56">智能插座 · 红外发射管 · 按键并联 · RS485 模块 · 换执行件</text>
+
+<rect x="48" y="320" width="584" height="56" rx="10" fill="none" stroke="#854F0B" stroke-width="0.5" stroke-dasharray="5 4"/>
+<text x="66" y="340" dominant-baseline="central" font-size="12" font-weight="500" fill="#412402">电器层</text>
+<text x="66" y="360" dominant-baseline="central" font-size="10" fill="#854F0B">用户已有</text>
+<text x="140" y="348" dominant-baseline="central" font-size="11" fill="#412402">灯 · 空调 · 新风 · 地暖 · 窗帘 · 门锁　—— 不用换，不用改电路板</text>
+
+<rect x="48" y="390" width="584" height="56" rx="10" fill="none" stroke="#854F0B" stroke-width="0.5" stroke-dasharray="5 4"/>
+<text x="66" y="410" dominant-baseline="central" font-size="12" font-weight="500" fill="#412402">物理兜底</text>
+<text x="66" y="430" dominant-baseline="central" font-size="10" fill="#854F0B">机械层</text>
+<text x="140" y="418" dominant-baseline="central" font-size="11" fill="#412402">墙面开关 · 三档选择器 · 应急拨杆　—— 不经过任何芯片</text>
+
+<text x="48" y="466" dominant-baseline="central" font-size="11" fill="#888780">转变：从"造十台智能电器"，到"给用户已有的电器装一个中间层"。</text>
+</svg>
