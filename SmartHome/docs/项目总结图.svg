@@ -1,0 +1,74 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="680" height="700" viewBox="0 0 680 700" font-family="system-ui, -apple-system, 'Segoe UI', 'Microsoft YaHei', 'PingFang SC', sans-serif">
+<title>分布式智慧家居系统 - 项目总结</title>
+<desc>三个核心设计亮点、四层架构、关键数字与八期建设进度</desc>
+<rect width="680" height="700" fill="#FFFFFF"/>
+
+<text x="48" y="64" dominant-baseline="central" font-size="24" font-weight="500" fill="#2C2C2A">分布式智慧家居系统</text>
+<text x="48" y="98" dominant-baseline="central" font-size="13" fill="#5F5E5A">一个电器一个节点  ·  判断归节点  ·  断网也能用</text>
+<path d="M48 120 L632 120" fill="none" stroke="#D3D1C7" stroke-width="0.5"/>
+
+<rect x="48" y="140" width="186" height="150" rx="12" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.5"/>
+<text x="68" y="172" dominant-baseline="central" font-size="14" font-weight="500" fill="#04342C">一器一芯</text>
+<text x="68" y="206" dominant-baseline="central" font-size="11" fill="#0F6E56">每个电器一块 ESP32-C3</text>
+<text x="68" y="228" dominant-baseline="central" font-size="11" fill="#0F6E56">加设备只改一行配置</text>
+<text x="68" y="262" dominant-baseline="central" font-size="11" fill="#0F6E56">掉一台，其余照常</text>
+
+<rect x="247" y="140" width="186" height="150" rx="12" fill="#FAEEDA" stroke="#854F0B" stroke-width="0.5"/>
+<text x="267" y="172" dominant-baseline="central" font-size="14" font-weight="500" fill="#412402">三档选择器</text>
+<text x="267" y="206" dominant-baseline="central" font-size="11" fill="#854F0B">自动 · 强开 · 强关</text>
+<text x="267" y="228" dominant-baseline="central" font-size="11" fill="#854F0B">MCU 坏了也能开灯</text>
+<text x="267" y="262" dominant-baseline="central" font-size="11" fill="#854F0B">检修时能彻底断电</text>
+
+<rect x="446" y="140" width="186" height="150" rx="12" fill="#E6F1FB" stroke="#185FA5" stroke-width="0.5"/>
+<text x="466" y="172" dominant-baseline="central" font-size="14" font-weight="500" fill="#042C53">状态只认实测</text>
+<text x="466" y="206" dominant-baseline="central" font-size="11" fill="#185FA5">界面不猜，等节点回报</text>
+<text x="466" y="228" dominant-baseline="central" font-size="11" fill="#185FA5">手动开灯，手机同步</text>
+<text x="466" y="262" dominant-baseline="central" font-size="11" fill="#185FA5">不会出现两套系统</text>
+
+<rect x="48" y="316" width="584" height="36" rx="8" fill="#E6F1FB" stroke="#185FA5" stroke-width="0.5"/>
+<text x="66" y="334" dominant-baseline="central" font-size="12" font-weight="500" fill="#042C53">云端</text>
+<text x="130" y="334" dominant-baseline="central" font-size="11" fill="#185FA5">MQTT Broker · 规则引擎 · 仪表盘 · 异地通道 · AI 推理</text>
+
+<rect x="48" y="360" width="584" height="36" rx="8" fill="#E6F1FB" stroke="#185FA5" stroke-width="0.5"/>
+<text x="66" y="378" dominant-baseline="central" font-size="12" font-weight="500" fill="#042C53">界面</text>
+<text x="130" y="378" dominant-baseline="central" font-size="11" fill="#185FA5">手机 PWA · Web 仪表盘 · 壁挂终端（旧手机 + 4 个物理键）</text>
+
+<rect x="48" y="404" width="584" height="36" rx="8" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.5"/>
+<text x="66" y="422" dominant-baseline="central" font-size="12" font-weight="500" fill="#04342C">设备</text>
+<text x="130" y="422" dominant-baseline="central" font-size="11" fill="#0F6E56">10 台 · 5 个房间　客厅 4　餐厅 1　主卧 2　厨房 2　玄关 1</text>
+
+<rect x="48" y="448" width="584" height="36" rx="8" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.5" stroke-dasharray="5 4"/>
+<text x="66" y="466" dominant-baseline="central" font-size="12" font-weight="500" fill="#04342C">兜底</text>
+<text x="130" y="466" dominant-baseline="central" font-size="11" fill="#0F6E56">墙面开关 · 三档选择器 · 应急拨杆　—— 不经过任何芯片</text>
+
+<path d="M48 504 L632 504" fill="none" stroke="#D3D1C7" stroke-width="0.5"/>
+
+<text x="48" y="536" dominant-baseline="central" font-size="20" font-weight="500" fill="#2C2C2A">10</text>
+<text x="48" y="560" dominant-baseline="central" font-size="11" fill="#5F5E5A">台受控设备</text>
+<text x="194" y="536" dominant-baseline="central" font-size="20" font-weight="500" fill="#2C2C2A">4</text>
+<text x="214" y="560" dominant-baseline="central" font-size="11" fill="#5F5E5A">种设备能力</text>
+<text x="340" y="536" dominant-baseline="central" font-size="20" font-weight="500" fill="#2C2C2A">6</text>
+<text x="360" y="560" dominant-baseline="central" font-size="11" fill="#5F5E5A">条通信链路</text>
+<text x="486" y="536" dominant-baseline="central" font-size="20" font-weight="500" fill="#2C2C2A">8</text>
+<text x="506" y="560" dominant-baseline="central" font-size="11" fill="#5F5E5A">期逐步建设</text>
+
+<text x="48" y="600" dominant-baseline="central" font-size="11" fill="#5F5E5A">建设进度</text>
+<rect x="130" y="592" width="62" height="14" rx="4" fill="#0F6E56"/>
+<rect x="200" y="592" width="62" height="14" rx="4" fill="#D3D1C7"/>
+<rect x="270" y="592" width="62" height="14" rx="4" fill="#D3D1C7"/>
+<rect x="340" y="592" width="62" height="14" rx="4" fill="#D3D1C7"/>
+<rect x="410" y="592" width="62" height="14" rx="4" fill="#D3D1C7"/>
+<rect x="480" y="592" width="62" height="14" rx="4" fill="#D3D1C7"/>
+<rect x="550" y="592" width="62" height="14" rx="4" fill="#D3D1C7"/>
+<text x="130" y="622" dominant-baseline="central" font-size="10" fill="#0F6E56">规划</text>
+<text x="200" y="622" dominant-baseline="central" font-size="10" fill="#888780">单节点</text>
+<text x="270" y="622" dominant-baseline="central" font-size="10" fill="#888780">上总线</text>
+<text x="340" y="622" dominant-baseline="central" font-size="10" fill="#888780">多节点</text>
+<text x="410" y="622" dominant-baseline="central" font-size="10" fill="#888780">异地</text>
+<text x="480" y="622" dominant-baseline="central" font-size="10" fill="#888780">场景</text>
+<text x="550" y="622" dominant-baseline="central" font-size="10" fill="#888780">工程化</text>
+
+<text x="48" y="660" dominant-baseline="central" font-size="11" fill="#888780">ESP32-C3　·　MQTT　·　12V 全直流模拟　·　PWA　·　Python</text>
+<text x="632" y="660" text-anchor="end" dominant-baseline="central" font-size="11" fill="#888780">结构优先于实现</text>
+<text x="48" y="686" dominant-baseline="central" font-size="10" fill="#888780">2026.11　·　github.com/sun2006-xin/Home-automation</text>
+</svg>
