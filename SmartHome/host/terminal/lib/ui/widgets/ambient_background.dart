@@ -1,11 +1,12 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 
-/// 温馨家居微光背景渲染器 (Ambient Home Background)
+/// 温馨家居实景微光背景渲染器 (Ambient Home Wallpaper & Lighting)
 ///
 /// 视觉设计：
-/// 1. 模拟高端室内建筑微光：顶部右侧泛起温暖琥珀色壁炉/台灯光晕，左侧带有柔和深邃的夜景窗景冷光；
-/// 2. 结合毛玻璃磨砂（BackdropFilter），营造深沉、温馨、具备数字实体深度的家居质感，告别冷冰冰的纯黑死寂。
+/// 1. 真实温馨家庭场景：加载 Japandi / 现代暖木风格客厅壁纸（沙发、地毯、暖光灯带、绿植、木地板）；
+/// 2. 护眼高对比度磨砂蒙层：覆盖渐变半透明暖黑蒙层与柔和高斯模糊，让家的温馨图景透光溢彩，
+///    同时确保前台仪表盘文字、数字、卡片图标具备 100% 锐利高对比度，绝对不反光、不刺眼、无视疲劳。
 class AmbientHomeBackground extends StatelessWidget {
   final Widget child;
   final bool isWarmMode;
@@ -27,44 +28,61 @@ class AmbientHomeBackground extends StatelessWidget {
 
     return Stack(
       children: [
-        // 1. 底层温暖室内光晕模拟
+        // 1. 底层：温馨家庭实景照片
         Positioned.fill(
-          child: Container(
-            decoration: const BoxDecoration(
-              gradient: RadialGradient(
-                center: Alignment(0.7, -0.6), // 右上方温暖台灯/壁灯散光
-                radius: 1.4,
-                colors: [
-                  Color(0xFF332212), // 温暖琥珀木质暖调
-                  Color(0xFF1A171D), // 柔和暮光过渡
-                  Color(0xFF0D0F14), // 深邃夜幕底色
-                ],
-                stops: [0.0, 0.5, 1.0],
+          child: Image.asset(
+            'assets/images/cozy_home_bg.jpg',
+            fit: BoxFit.cover,
+            alignment: Alignment.center,
+            errorBuilder: (context, error, stackTrace) {
+              // 容错兜底：若文件不可读，降级为暖色室内漫反射渐变
+              return Container(
+                decoration: const BoxDecoration(
+                  gradient: RadialGradient(
+                    center: Alignment(0.6, -0.5),
+                    radius: 1.3,
+                    colors: [
+                      Color(0xFF382515),
+                      Color(0xFF1F1A20),
+                      Color(0xFF0E1015),
+                    ],
+                    stops: [0.0, 0.5, 1.0],
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+
+        // 2. 中层：暖调半透明遮罩与毛玻璃漫反射（确保卡片与文字极佳的可读性）
+        Positioned.fill(
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 4.5, sigmaY: 4.5),
+            child: Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    const Color(0x990A0D14), // 顶部 60% 深度暗化
+                    const Color(0xB807090E), // 底部 72% 深度暗化
+                  ],
+                ),
               ),
             ),
           ),
         ),
 
-        // 2. 左下方微弱冷月光环境光晕
+        // 3. 微弱暖光光晕叠加，增强自然温馨感
         Positioned(
-          left: -100,
-          bottom: -100,
-          width: 450,
-          height: 450,
+          top: -60,
+          right: 80,
+          width: 320,
+          height: 240,
           child: Container(
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: const Color(0xFF003847).withValues(alpha: 0.25),
-            ),
-          ),
-        ),
-
-        // 3. 极细磨砂亚光层，保证前景色文字与卡片最高清晰度
-        Positioned.fill(
-          child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 25, sigmaY: 25),
-            child: Container(
-              color: Colors.black.withValues(alpha: 0.35),
+              color: const Color(0xFFFFB347).withValues(alpha: 0.08),
             ),
           ),
         ),

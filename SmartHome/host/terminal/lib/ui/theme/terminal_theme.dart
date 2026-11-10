@@ -15,10 +15,13 @@ class TerminalTheme {
 
   // 状态微光色系
   static const Color amberWarm = Color(0xFFFFB300); // 暖琥珀：照明
+  static const Color amberPrimary = amberWarm;
   static const Color cyanCool = Color(0xFF00E5FF);  // 冷青色：制冷/空气
+  static const Color cyanActive = cyanCool;
   static const Color tealSafe = Color(0xFF00E676);  // 电光绿：在线/安全
   static const Color crimsonAlert = Color(0xFFFF334B); // 信号红：紧急/告警
   static const Color purpleMode = Color(0xFF7C4DFF);   // 场景模式
+  static const Color glassBorder = Color(0x2EFFFFFF); // 毛玻璃微边框
 
   // 文字分级
   static const Color textPrimary = Color(0xFFF0F4F8);

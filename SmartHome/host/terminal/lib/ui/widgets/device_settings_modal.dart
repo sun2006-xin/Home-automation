@@ -5,55 +5,60 @@ import '../theme/terminal_theme.dart';
 
 /// 设备与房间自主配置面板 (DeviceSettingsModal)
 ///
-/// 功能：
-/// 1. 查看与自定义电器的【显示名称】、【硬件ID】与【归属房间】；
-/// 2. 预览该电器对应的 MQTT 通信契约主题；
-/// 3. 一键切换“温馨家居背景”与“极简深空黑”。
+/// 架构升级：
+/// 1. 支持多卧室与方位朝向房间管理（主卧、次卧南、次卧北、书房等，支持自由增删）；
+/// 2. 自主编辑任意电器的显示名称、硬件 ID 与归属房间（所选房间实时联动）；
+/// 3. 温馨家居实景背景壁纸开关与环境微光控制。
 class DeviceSettingsModal extends StatefulWidget {
   final TerminalState state;
 
   const DeviceSettingsModal({super.key, required this.state});
 
-  static void show(BuildContext context, TerminalState state) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (_) => DeviceSettingsModal(state: state),
-    );
-  }
-
   @override
   State<DeviceSettingsModal> createState() => _DeviceSettingsModalState();
 }
 
-class _DeviceSettingsModalState extends State<DeviceSettingsModal> {
+class _DeviceSettingsModalState extends State<DeviceSettingsModal> with SingleTickerProviderStateMixin {
+  late TabController _tabController;
+  final TextEditingController _newRoomController = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    _tabController = TabController(length: 2, vsync: this);
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    _newRoomController.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
-    final devices = widget.state.allDevices;
-
     return Container(
-      height: MediaQuery.of(context).size.height * 0.85,
-      padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 20),
+      height: MediaQuery.of(context).size.height * 0.90,
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
       decoration: BoxDecoration(
-        color: const Color(0xFF141923).withValues(alpha: 0.98),
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
-        border: Border.all(color: TerminalTheme.borderSubtle, width: 1.5),
+        color: const Color(0xFF131824).withValues(alpha: 0.98),
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        border: Border.all(color: TerminalTheme.glassBorder, width: 1.5),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.6),
-            blurRadius: 40,
-            spreadRadius: 10,
+            color: Colors.black.withValues(alpha: 0.7),
+            blurRadius: 30,
+            spreadRadius: 8,
           ),
         ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // 顶部拖动条与标题
+          // 顶部拖动条与标题栏
           Center(
             child: Container(
-              width: 48,
+              width: 44,
               height: 4,
               decoration: BoxDecoration(
                 color: Colors.white24,
@@ -61,66 +66,69 @@ class _DeviceSettingsModalState extends State<DeviceSettingsModal> {
               ),
             ),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 12),
+
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Column(
+              const Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
-                    '电器与房间自定义配置',
+                  Text(
+                    '智慧终端 · 房间与设备工程设置',
                     style: TextStyle(
-                      color: TerminalTheme.textPrimary,
-                      fontSize: 22,
+                      color: Colors.white,
+                      fontSize: 18,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
-                  const SizedBox(height: 4),
-                  const Text(
-                    '可自由修改名称、归属房间与硬件 ID，修改即刻生效',
-                    style: TextStyle(color: TerminalTheme.textSecondary, fontSize: 13),
+                  SizedBox(height: 2),
+                  Text(
+                    '支持多朝向卧室划分、电器归属重设与背景壁纸切换',
+                    style: TextStyle(color: TerminalTheme.textSecondary, fontSize: 12),
                   ),
                 ],
               ),
-              // 背景切换按钮
+              const Spacer(),
+
+              // 温馨背景壁纸开关
               GestureDetector(
                 onTap: () {
                   widget.state.toggleBackgroundTheme();
                   setState(() {});
                 },
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                   decoration: BoxDecoration(
                     color: widget.state.useWarmHomeBackground
-                        ? TerminalTheme.amberWarm.withValues(alpha: 0.2)
+                        ? TerminalTheme.amberPrimary.withValues(alpha: 0.2)
                         : Colors.white.withValues(alpha: 0.08),
-                    borderRadius: BorderRadius.circular(14),
+                    borderRadius: BorderRadius.circular(10),
                     border: Border.all(
                       color: widget.state.useWarmHomeBackground
-                          ? TerminalTheme.amberWarm
+                          ? TerminalTheme.amberPrimary
                           : Colors.white24,
                     ),
                   ),
                   child: Row(
+                    mainAxisSize: MainAxisSize.min,
                     children: [
                       Icon(
                         widget.state.useWarmHomeBackground
-                            ? Icons.wb_sunny_rounded
+                            ? Icons.home_rounded
                             : Icons.nightlight_round,
-                        size: 16,
+                        size: 14,
                         color: widget.state.useWarmHomeBackground
-                            ? TerminalTheme.amberWarm
+                            ? TerminalTheme.amberPrimary
                             : TerminalTheme.textSecondary,
                       ),
-                      const SizedBox(width: 6),
+                      const SizedBox(width: 4),
                       Text(
-                        widget.state.useWarmHomeBackground ? '温馨家居背景' : '深空黑底',
+                        widget.state.useWarmHomeBackground ? '家庭实景背景' : '极简深空黑',
                         style: TextStyle(
                           color: widget.state.useWarmHomeBackground
-                              ? TerminalTheme.amberWarm
+                              ? TerminalTheme.amberPrimary
                               : TerminalTheme.textSecondary,
-                          fontSize: 12,
+                          fontSize: 11,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
@@ -130,17 +138,40 @@ class _DeviceSettingsModalState extends State<DeviceSettingsModal> {
               ),
             ],
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 12),
 
-          // 设备列表
+          // 选项卡：【设备清单与分配】与【房间朝向管理】
+          Container(
+            height: 34,
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.05),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: TabBar(
+              controller: _tabController,
+              indicator: BoxDecoration(
+                color: const Color(0xFF6C5CE7),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              labelColor: Colors.white,
+              unselectedLabelColor: TerminalTheme.textSecondary,
+              labelStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+              tabs: const [
+                Tab(text: '📱 全屋电器与房间归属'),
+                Tab(text: '🏠 房间朝向与自定义增删'),
+              ],
+            ),
+          ),
+          const SizedBox(height: 12),
+
+          // 选项卡内容
           Expanded(
-            child: ListView.separated(
-              itemCount: devices.length,
-              separatorBuilder: (context, index) => const SizedBox(height: 12),
-              itemBuilder: (context, idx) {
-                final d = devices[idx];
-                return _buildDeviceItem(d);
-              },
+            child: TabBarView(
+              controller: _tabController,
+              children: [
+                _buildDeviceListTab(),
+                _buildRoomManagerTab(),
+              ],
             ),
           ),
         ],
@@ -148,90 +179,252 @@ class _DeviceSettingsModalState extends State<DeviceSettingsModal> {
     );
   }
 
-  Widget _buildDeviceItem(SmartDevice d) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: TerminalTheme.surfaceCard,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: TerminalTheme.borderSubtle),
-      ),
-      child: Row(
-        children: [
-          // 硬件 ID 徽章
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.08),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Text(
-              d.id,
-              style: const TextStyle(
-                color: TerminalTheme.amberWarm,
-                fontSize: 13,
-                fontWeight: FontWeight.bold,
-                fontFamily: 'monospace',
-              ),
-            ),
+  // --- 选项卡 1：设备清单与分配 ---
+  Widget _buildDeviceListTab() {
+    final devices = widget.state.allDevices;
+    return ListView.separated(
+      itemCount: devices.length,
+      separatorBuilder: (_, _) => const SizedBox(height: 8),
+      itemBuilder: (context, index) {
+        final d = devices[index];
+        return Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          decoration: BoxDecoration(
+            color: const Color(0xFF1A2130).withValues(alpha: 0.8),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
           ),
-          const SizedBox(width: 16),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: TerminalTheme.amberPrimary.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Text(
+                  d.id,
+                  style: const TextStyle(
+                    color: TerminalTheme.amberPrimary,
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold,
+                    fontFamily: 'monospace',
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
 
-          // 设备名称与房间
-          Expanded(
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      d.name,
+                      style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      '当前房间: ${d.room}  ·  MQTT: sh/h01/${d.id}/cmd',
+                      style: const TextStyle(color: TerminalTheme.textSecondary, fontSize: 11),
+                    ),
+                  ],
+                ),
+              ),
+
+              GestureDetector(
+                onTap: () => _editDeviceDialog(d),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF6C5CE7).withValues(alpha: 0.2),
+                    borderRadius: BorderRadius.circular(6),
+                    border: Border.all(color: const Color(0xFF6C5CE7).withValues(alpha: 0.6)),
+                  ),
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.edit_rounded, color: Color(0xFFA29BFE), size: 12),
+                      SizedBox(width: 4),
+                      Text(
+                        '更改配置',
+                        style: TextStyle(color: Color(0xFFA29BFE), fontSize: 11, fontWeight: FontWeight.bold),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  // --- 选项卡 2：房间朝向与自定义增删 ---
+  Widget _buildRoomManagerTab() {
+    final manageableRooms = widget.state.rooms.where((r) => r != '全部').toList();
+
+    return SingleChildScrollView(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // 新增房间输入框与快捷朝向标签
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: const Color(0xFF1A2130).withValues(alpha: 0.8),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+            ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  d.name,
-                  style: const TextStyle(
-                    color: TerminalTheme.textPrimary,
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                  ),
+                const Text(
+                  '添加新房间 / 区分朝向多卧室',
+                  style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold),
                 ),
-                const SizedBox(height: 2),
-                Text(
-                  '归属房间: ${d.room}  ·  MQTT 主题: sh/h01/${d.id}/cmd',
-                  style: const TextStyle(
-                    color: TerminalTheme.textSecondary,
-                    fontSize: 11,
-                  ),
+                const SizedBox(height: 6),
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: _newRoomController,
+                        style: const TextStyle(color: Colors.white, fontSize: 13),
+                        decoration: InputDecoration(
+                          hintText: '输入自定义房间 (例如: 次卧(西)、长辈房、阳光阳台)',
+                          hintStyle: const TextStyle(color: TerminalTheme.textMuted, fontSize: 12),
+                          filled: true,
+                          fillColor: Colors.black26,
+                          isDense: true,
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                            borderSide: BorderSide.none,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF6C5CE7),
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      ),
+                      onPressed: () {
+                        final name = _newRoomController.text.trim();
+                        if (name.isNotEmpty) {
+                          widget.state.addRoom(name);
+                          _newRoomController.clear();
+                          setState(() {});
+                        }
+                      },
+                      child: const Text('添加房间', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+
+                // 快捷朝向预设
+                Wrap(
+                  spacing: 6,
+                  runSpacing: 6,
+                  children: [
+                    '主卧(南)',
+                    '次卧(南)',
+                    '次卧(北)',
+                    '次卧(东)',
+                    '长辈房',
+                    '儿童房',
+                    '书房(东)',
+                    '阳光房',
+                    '主卫',
+                    '客卫',
+                  ].map((preset) {
+                    return GestureDetector(
+                      onTap: () {
+                        widget.state.addRoom(preset);
+                        setState(() {});
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.06),
+                          borderRadius: BorderRadius.circular(6),
+                          border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+                        ),
+                        child: Text(
+                          '+ $preset',
+                          style: const TextStyle(color: TerminalTheme.textSecondary, fontSize: 11),
+                        ),
+                      ),
+                    );
+                  }).toList(),
                 ),
               ],
             ),
           ),
+          const SizedBox(height: 12),
 
-          // 编辑按钮
-          GestureDetector(
-            onTap: () => _editDeviceDialog(d),
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              decoration: BoxDecoration(
-                color: TerminalTheme.borderSubtle,
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: const Row(
-                children: [
-                  Icon(Icons.edit_rounded, size: 14, color: TerminalTheme.textSecondary),
-                  SizedBox(width: 4),
-                  Text(
-                    '编辑',
-                    style: TextStyle(color: TerminalTheme.textSecondary, fontSize: 12),
-                  ),
-                ],
-              ),
-            ),
+          // 现有房间列表
+          const Text(
+            '现有房间列表 (点击红色删除按钮可移除自定义房间):',
+            style: TextStyle(color: TerminalTheme.textSecondary, fontSize: 12),
+          ),
+          const SizedBox(height: 6),
+
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: manageableRooms.map((rm) {
+              final isDefault = rm == '客厅';
+              final count = widget.state.allDevices.where((d) => d.room == rm).length;
+
+              return Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF1A2130),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      rm,
+                      style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600),
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      '($count)',
+                      style: const TextStyle(color: TerminalTheme.amberPrimary, fontSize: 11),
+                    ),
+                    if (!isDefault) ...[
+                      const SizedBox(width: 6),
+                      GestureDetector(
+                        onTap: () {
+                          widget.state.removeRoom(rm);
+                          setState(() {});
+                        },
+                        child: const Icon(Icons.close_rounded, color: Colors.redAccent, size: 14),
+                      ),
+                    ],
+                  ],
+                ),
+              );
+            }).toList(),
           ),
         ],
       ),
     );
   }
 
+  // --- 弹窗：编辑单个设备 ---
   void _editDeviceDialog(SmartDevice d) {
     final nameCtrl = TextEditingController(text: d.name);
     String currentRoom = d.room;
-    final availableRooms = ['客厅', '餐厅', '主卧', '厨房', '卫生间', '阳台'];
+    final availableRooms = widget.state.rooms.where((r) => r != '全部').toList();
 
     showDialog(
       context: context,
@@ -240,61 +433,66 @@ class _DeviceSettingsModalState extends State<DeviceSettingsModal> {
           builder: (context, setDlgState) {
             return AlertDialog(
               backgroundColor: const Color(0xFF1B2232),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
               title: Text(
                 '编辑设备 [${d.id}]',
-                style: const TextStyle(color: TerminalTheme.textPrimary, fontSize: 18),
+                style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
               ),
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text('显示名称:', style: TextStyle(color: TerminalTheme.textSecondary, fontSize: 13)),
-                  const SizedBox(height: 6),
-                  TextField(
-                    controller: nameCtrl,
-                    style: const TextStyle(color: TerminalTheme.textPrimary),
-                    decoration: InputDecoration(
-                      filled: true,
-                      fillColor: Colors.black26,
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10),
-                        borderSide: BorderSide.none,
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('电器显示名称:', style: TextStyle(color: TerminalTheme.textSecondary, fontSize: 12)),
+                    const SizedBox(height: 6),
+                    TextField(
+                      controller: nameCtrl,
+                      style: const TextStyle(color: Colors.white, fontSize: 13),
+                      decoration: InputDecoration(
+                        filled: true,
+                        fillColor: Colors.black26,
+                        isDense: true,
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          borderSide: BorderSide.none,
+                        ),
                       ),
                     ),
-                  ),
-                  const SizedBox(height: 16),
-                  const Text('归属房间:', style: TextStyle(color: TerminalTheme.textSecondary, fontSize: 13)),
-                  const SizedBox(height: 8),
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: availableRooms.map((rm) {
-                      final sel = rm == currentRoom;
-                      return GestureDetector(
-                        onTap: () {
-                          setDlgState(() => currentRoom = rm);
-                        },
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                          decoration: BoxDecoration(
-                            color: sel ? TerminalTheme.purpleMode : Colors.white10,
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Text(
-                            rm,
-                            style: TextStyle(
-                              color: sel ? Colors.white : TerminalTheme.textSecondary,
-                              fontSize: 12,
-                              fontWeight: sel ? FontWeight.bold : FontWeight.normal,
+                    const SizedBox(height: 12),
+
+                    const Text('重新分配归属房间 (支持多卧室朝向):', style: TextStyle(color: TerminalTheme.textSecondary, fontSize: 12)),
+                    const SizedBox(height: 6),
+                    Wrap(
+                      spacing: 6,
+                      runSpacing: 6,
+                      children: availableRooms.map((rm) {
+                        final sel = rm == currentRoom;
+                        return GestureDetector(
+                          onTap: () => setDlgState(() => currentRoom = rm),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                            decoration: BoxDecoration(
+                              color: sel ? const Color(0xFF6C5CE7) : Colors.white10,
+                              borderRadius: BorderRadius.circular(6),
+                              border: Border.all(
+                                color: sel ? const Color(0xFFA29BFE) : Colors.transparent,
+                              ),
+                            ),
+                            child: Text(
+                              rm,
+                              style: TextStyle(
+                                color: sel ? Colors.white : TerminalTheme.textSecondary,
+                                fontSize: 11,
+                                fontWeight: sel ? FontWeight.bold : FontWeight.normal,
+                              ),
                             ),
                           ),
-                        ),
-                      );
-                    }).toList(),
-                  ),
-                ],
+                        );
+                      }).toList(),
+                    ),
+                  ],
+                ),
               ),
               actions: [
                 TextButton(
@@ -303,9 +501,9 @@ class _DeviceSettingsModalState extends State<DeviceSettingsModal> {
                 ),
                 ElevatedButton(
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: TerminalTheme.amberWarm,
+                    backgroundColor: TerminalTheme.amberPrimary,
                     foregroundColor: Colors.black,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                   ),
                   onPressed: () {
                     widget.state.updateDevice(
