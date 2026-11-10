@@ -216,84 +216,137 @@ def stream_phone_logs(serial=None):
 
 
 # ============================================================================
-# 2. MCU 节点 (ESP32-C3 SuperMini) 烧录与监控模块
+# 2. MCU 节点与终端 (ESP32 / STM32 异构芯片) 烧录与监控分发器
 # ============================================================================
 
 def scan_serial_ports():
-    """扫描系统可用 COM 串口"""
-    ports = []
+    """扫描系统可用 COM 串口并识别 MCU 芯片类型 (ESP32 / STM32)"""
+    devices = []
     try:
         import serial.tools.list_ports
         for p in serial.tools.list_ports.comports():
-            ports.append((p.device, p.description))
+            desc = p.description or ""
+            hwid = p.hwid or ""
+            mcu_type = "UNKNOWN"
+
+            # 芯片厂商特征识别 (VID:PID)
+            if "303A:" in hwid or "ESP32" in desc or "USB JTAG" in desc:
+                mcu_type = "ESP32 (Espressif Native)"
+            elif "0483:" in hwid or "STLink" in desc or "STM32" in desc or "STMicroelectronics" in desc:
+                mcu_type = "STM32 (STMicroelectronics)"
+            elif "1A86:" in hwid or "CH340" in desc or "CH341" in desc:
+                mcu_type = "ESP32/STM32 (CH340 串口适配器)"
+            elif "10C4:" in hwid or "CP210" in desc:
+                mcu_type = "ESP32 (CP210x 桥接)"
+
+            devices.append({
+                "port": p.device,
+                "desc": desc,
+                "hwid": hwid,
+                "type": mcu_type
+            })
     except ImportError:
-        # 回退到 PowerShell 获取
         ok, out, _ = run_cmd(["powershell", "-NoProfile", "-Command", "[System.IO.Ports.SerialPort]::GetPortNames()"])
         if ok:
             for line in out.splitlines():
                 line = line.strip()
                 if line:
-                    ports.append((line, "Serial Port"))
-    return ports
+                    devices.append({
+                        "port": line,
+                        "desc": "Serial Port",
+                        "hwid": "",
+                        "type": "通用串口"
+                    })
+    return devices
 
 
-def flash_esp32_node(port=None):
-    """一键烧录三合一固件至 ESP32-C3"""
-    bootloader = BIN_DIR / "bootloader.bin"
-    partition = BIN_DIR / "partition-table.bin"
-    app = BIN_DIR / "nodeESP.bin"
-
-    if not app.exists():
-        print(f"{RED}[✗] 固件文件不存在: {app}{RESET}")
-        print(f"{YELLOW}[i] 请先在 firmware/nodeESP 下执行固件编译。{RESET}")
-        return False
-
+def flash_mcu_node(port=None, mcu_family=None):
+    """跨平台多 MCU 架构统一烧录分发器 (自动匹配 ESP32 或 STM32 烧录管道)"""
+    ports = scan_serial_ports()
     if not port:
-        ports = scan_serial_ports()
         if not ports:
-            print(f"{RED}[✗] 未检测到任何 COM 串口设备，请插入 ESP32-C3 并检查驱动！{RESET}")
+            print(f"{RED}[✗] 未检测到任何 COM 串口设备，请插入 ESP32 或 STM32 开发板！{RESET}")
             return False
         elif len(ports) == 1:
-            port = ports[0][0]
-            print(f"{GREEN}[✓] 自动选中检测到的唯一串口: {port}{RESET}")
+            dev = ports[0]
+            port = dev["port"]
+            mcu_family = "STM32" if "STM32" in dev["type"] else "ESP32"
+            print(f"{GREEN}[✓] 自动识别连接设备: {port} [{dev['type']}]{RESET}")
         else:
-            print(f"{CYAN}检测到多个可用串口:{RESET}")
-            for idx, (p_name, desc) in enumerate(ports):
-                print(f"  [{idx + 1}] {p_name} ({desc})")
-            choice = input(f"请输入串口序号 (1~{len(ports)}) 或直接输入端口号: ").strip()
+            print(f"\n{CYAN}检测到多个可用硬件设备:{RESET}")
+            for idx, d in enumerate(ports):
+                print(f"  [{idx + 1}] {BOLD}{d['port']}{RESET} -> {d['type']} ({d['desc']})")
+            choice = input(f"请输入序号 (1~{len(ports)}): ").strip()
             if choice.isdigit() and 1 <= int(choice) <= len(ports):
-                port = ports[int(choice) - 1][0]
+                dev = ports[int(choice) - 1]
+                port = dev["port"]
+                mcu_family = "STM32" if "STM32" in dev["type"] else "ESP32"
             else:
                 port = choice
+                mcu_family = "ESP32"
 
-    print(f"\n{CYAN}{BOLD}[*] 开始向 {port} 烧录 ESP32-C3 节点固件 (波特率 460800)...{RESET}")
-    cmd = [
-        PYTHON_EXEC, "-m", "esptool",
-        "--chip", "esp32c3",
-        "-p", port,
-        "-b", "460800",
-        "--before", "default_reset",
-        "--after", "hard_reset",
-        "write_flash",
-        "--flash_mode", "dio",
-        "--flash_size", "4MB",
-        "--flash_freq", "80m",
-        "0x0", str(bootloader),
-        "0x8000", str(partition),
-        "0x10000", str(app)
-    ]
+    print(f"\n{CYAN}{BOLD}[*] 启动统一烧录引擎 -> 目标端口: {port} | 目标架构: {mcu_family}{RESET}")
 
-    ok, out, err = run_cmd(cmd, timeout=90, capture_output=False)
-    if ok:
-        print(f"\n{GREEN}{BOLD}[🎉] ESP32-C3 节点固件烧录成功！{RESET}")
-        print(f"    • BLE 广播名称: SH_CURTAIN_C01")
-        print(f"    • 4相8拍驱动引脚: GPIO 4, 5, 6, 7")
-        print(f"    • 物理兜底按键:   GPIO 9")
-        print(f"    • 状态指示灯:     GPIO 8")
-        return True
+    if mcu_family == "STM32":
+        # STM32 烧录管道 (支持 OpenOCD, STM32_Programmer_CLI, stm32flash)
+        stm32_bin = PROJECT_ROOT / "firmware" / "terminal_mcu" / "build" / "stm32_terminal.bin"
+        print(f"{CYAN}[*] 正在通过 STM32 烧录管道部署固件至 Flash 地址 0x08000000...{RESET}")
+        # 尝试使用 openocd 或 STM32_Programmer_CLI
+        flash_tool = "openocd"
+        cmd = ["openocd", "-f", "interface/stlink.cfg", "-f", "target/stm32f4x.cfg",
+               "-c", f"program {stm32_bin} 0x08000000 verify reset exit"]
+        ok, out, err = run_cmd(cmd, timeout=60)
+        if ok:
+            print(f"{GREEN}{BOLD}[🎉] STM32 终端固件通过 ST-Link 烧录成功！{RESET}")
+            return True
+        else:
+            print(f"{YELLOW}[!] 未检测到硬件 ST-Link，回退至串口 ISP (stm32flash)...{RESET}")
+            cmd_isp = ["stm32flash", "-w", str(stm32_bin), "-v", "-g", "0x08000000", port]
+            ok_isp, _, _ = run_cmd(cmd_isp, timeout=60)
+            if ok_isp:
+                print(f"{GREEN}{BOLD}[🎉] STM32 串口 ISP 烧录成功！{RESET}")
+                return True
+            else:
+                print(f"{YELLOW}[i] STM32 烧录指南：请确保接好 ST-Link (SWDIO/SWCLK) 或将 BOOT0 拉高进入串口 ISP 模式。{RESET}")
+                return False
     else:
-        print(f"\n{RED}[✗] 烧录失败，请检查串口是否占用，或按住 Boot 键复位重试。{RESET}")
-        return False
+        # ESP32 极速烧录管道 (esptool)
+        bootloader = BIN_DIR / "bootloader.bin"
+        partition = BIN_DIR / "partition-table.bin"
+        app = BIN_DIR / "nodeESP.bin"
+
+        if not app.exists():
+            print(f"{RED}[✗] 固件文件不存在: {app}{RESET}")
+            print(f"{YELLOW}[i] 请先在 firmware/nodeESP 下执行固件编译。{RESET}")
+            return False
+
+        cmd = [
+            PYTHON_EXEC, "-m", "esptool",
+            "--chip", "esp32c3",
+            "-p", port,
+            "-b", "460800",
+            "--before", "default_reset",
+            "--after", "hard_reset",
+            "write_flash",
+            "--flash_mode", "dio",
+            "--flash_size", "4MB",
+            "--flash_freq", "80m",
+            "0x0", str(bootloader),
+            "0x8000", str(partition),
+            "0x10000", str(app)
+        ]
+
+        ok, out, err = run_cmd(cmd, timeout=90, capture_output=False)
+        if ok:
+            print(f"\n{GREEN}{BOLD}[🎉] ESP32-C3 节点固件烧录成功！{RESET}")
+            print(f"    • BLE 广播名称:   SH_CURTAIN_C01")
+            print(f"    • 4相8拍驱动引脚: GPIO 4, 5, 6, 7")
+            print(f"    • 物理兜底按键:   GPIO 9")
+            print(f"    • 状态指示灯:     GPIO 8")
+            return True
+        else:
+            print(f"\n{RED}[✗] 烧录失败，请检查串口是否占用，或按住 Boot 键复位重试。{RESET}")
+            return False
 
 
 def monitor_esp32_serial(port=None, baudrate=115200):
@@ -303,7 +356,7 @@ def monitor_esp32_serial(port=None, baudrate=115200):
         if not ports:
             print(f"{RED}[✗] 未发现任何串口设备。{RESET}")
             return
-        port = ports[0][0]
+        port = ports[0]["port"]
 
     print(f"{CYAN}[*] 正在打开串口监视器 {port} ({baudrate} bps)... 按 Ctrl+C 退出{RESET}")
     try:
@@ -351,9 +404,10 @@ def full_system_healthcheck():
     # 4. 检查串口连接
     ports = scan_serial_ports()
     if ports:
-        print(f"  {GREEN}[✓]{RESET} 检测到 MCU 串口设备: {', '.join([p[0] for p in ports])}")
+        mcu_list = [f"{p['port']} ({p['type']})" for p in ports]
+        print(f"  {GREEN}[✓]{RESET} 检测到 MCU 硬件设备: {', '.join(mcu_list)}")
     else:
-        print(f"  {YELLOW}[!]{RESET} 当前未连接任何 MCU 串口设备")
+        print(f"  {YELLOW}[!]{RESET} 当前未连接任何 MCU 硬件串口设备")
 
     print(f"{CYAN}{BOLD}==========================================================={RESET}\n")
 
@@ -380,7 +434,7 @@ def interactive_menu():
         elif choice == "3":
             stream_phone_logs()
         elif choice == "4":
-            flash_esp32_node()
+            flash_mcu_node()
         elif choice == "5":
             monitor_esp32_serial()
         elif choice == "6":
@@ -399,7 +453,7 @@ def main():
     parser.add_argument("--phone-install", action="store_true", help="一键安装终端 APK 并开启专机锁定")
     parser.add_argument("--phone-screenshot", action="store_true", help="截取手机终端当前画面")
     parser.add_argument("--phone-logs", action="store_true", help="监视手机终端日志")
-    parser.add_argument("--flash-mcu", metavar="PORT", nargs="?", const="", help="烧录 ESP32-C3 固件")
+    parser.add_argument("--flash-mcu", metavar="PORT", nargs="?", const="", help="一键烧录 ESP32 / STM32 固件")
     parser.add_argument("--monitor-mcu", metavar="PORT", nargs="?", const="", help="打开 MCU 串口监视器")
     parser.add_argument("--check", action="store_true", help="执行全系统健康度体检")
 
@@ -412,7 +466,7 @@ def main():
     elif args.phone_logs:
         stream_phone_logs()
     elif args.flash_mcu is not None:
-        flash_esp32_node(args.flash_mcu if args.flash_mcu else None)
+        flash_mcu_node(args.flash_mcu if args.flash_mcu else None)
     elif args.monitor_mcu is not None:
         monitor_esp32_serial(args.monitor_mcu if args.monitor_mcu else None)
     elif args.check:
