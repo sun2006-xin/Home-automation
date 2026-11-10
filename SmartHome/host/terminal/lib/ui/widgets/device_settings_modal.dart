@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../core/terminal_state.dart';
 import '../../core/device_model.dart';
+import '../../core/cloud_sync_service.dart';
 import '../theme/terminal_theme.dart';
 
 /// 设备与房间自主配置面板 (DeviceSettingsModal)
@@ -22,17 +23,26 @@ class DeviceSettingsModal extends StatefulWidget {
 class _DeviceSettingsModalState extends State<DeviceSettingsModal> with SingleTickerProviderStateMixin {
   late TabController _tabController;
   final TextEditingController _newRoomController = TextEditingController();
+  late TextEditingController _cloudHostController;
+  late TextEditingController _cloudPortController;
+  late TextEditingController _cloudTokenController;
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this);
+    _tabController = TabController(length: 3, vsync: this);
+    _cloudHostController = TextEditingController(text: widget.state.cloudSync.host);
+    _cloudPortController = TextEditingController(text: widget.state.cloudSync.port.toString());
+    _cloudTokenController = TextEditingController(text: widget.state.cloudSync.token);
   }
 
   @override
   void dispose() {
     _tabController.dispose();
     _newRoomController.dispose();
+    _cloudHostController.dispose();
+    _cloudPortController.dispose();
+    _cloudTokenController.dispose();
     super.dispose();
   }
 
@@ -276,6 +286,7 @@ class _DeviceSettingsModalState extends State<DeviceSettingsModal> with SingleTi
               tabs: const [
                 Tab(text: '📱 全屋电器与房间归属'),
                 Tab(text: '🏠 房间朝向与自定义增删'),
+                Tab(text: '☁️ 云端同步与远程部署'),
               ],
             ),
           ),
@@ -288,6 +299,7 @@ class _DeviceSettingsModalState extends State<DeviceSettingsModal> with SingleTi
               children: [
                 _buildDeviceListTab(),
                 _buildRoomManagerTab(),
+                _buildCloudSyncTab(),
               ],
             ),
           ),
@@ -531,6 +543,237 @@ class _DeviceSettingsModalState extends State<DeviceSettingsModal> with SingleTi
                 ),
               );
             }).toList(),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // --- 选项卡 3：云端公网双向同步与远程部署 ---
+  Widget _buildCloudSyncTab() {
+    final sync = widget.state.cloudSync;
+    final isOnline = sync.status == CloudConnectionStatus.connected;
+    final isSyncing = sync.status == CloudConnectionStatus.syncing;
+    final isConnecting = sync.status == CloudConnectionStatus.connecting;
+
+    return SingleChildScrollView(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // 状态看板
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: isOnline
+                  ? const Color(0x1F2ECC71)
+                  : (isConnecting || isSyncing ? const Color(0x1FF39C12) : const Color(0x15FFFFFF)),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: isOnline
+                    ? const Color(0x662ECC71)
+                    : (isConnecting || isSyncing ? const Color(0x66F39C12) : Colors.white24),
+              ),
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  isOnline
+                      ? Icons.cloud_done_rounded
+                      : (isConnecting || isSyncing ? Icons.cloud_sync_rounded : Icons.cloud_off_rounded),
+                  color: isOnline
+                      ? const Color(0xFF2ECC71)
+                      : (isConnecting || isSyncing ? const Color(0xFFF39C12) : TerminalTheme.textSecondary),
+                  size: 32,
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Text(
+                            isOnline ? '云端已就绪 · 双向长连接活跃' : (isConnecting ? '正在连接云端中枢...' : (isSyncing ? '数据同步中...' : '云端离线 · 本地兜底模式')),
+                            style: TextStyle(
+                              color: isOnline ? const Color(0xFF2ECC71) : (isConnecting || isSyncing ? const Color(0xFFF39C12) : Colors.white),
+                              fontSize: 14,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const Spacer(),
+                          if (isOnline)
+                            Text(
+                              'RTT: ${sync.latencyMs}ms',
+                              style: const TextStyle(color: Color(0xFF2ECC71), fontSize: 11, fontWeight: FontWeight.bold),
+                            ),
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        '当前节点：${sync.host}:${sync.port} · 通信信道：WebSocket (Duplex) / HTTP REST · 租户：${sync.homeId}',
+                        style: const TextStyle(color: TerminalTheme.textSecondary, fontSize: 11),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+
+          // 云端地址与凭证配置
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: const Color(0xFF161E2E),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  '⚙️ 公网云端节点配置 (Cloud Server Endpoint)',
+                  style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 4),
+                const Text(
+                  '支持本地开发电脑调试（127.0.0.1 或局域网 IP）及公网云服务器（阿里云/腾讯云/AWS 域名或公网 IP）无缝切换',
+                  style: TextStyle(color: TerminalTheme.textSecondary, fontSize: 11),
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Expanded(
+                      flex: 3,
+                      child: TextField(
+                        controller: _cloudHostController,
+                        style: const TextStyle(color: Colors.white, fontSize: 12),
+                        decoration: InputDecoration(
+                          labelText: '云端服务器 IP / 域名',
+                          labelStyle: const TextStyle(color: TerminalTheme.textSecondary, fontSize: 11),
+                          hintText: '如 127.0.0.1 或 cloud.mysmarthome.com',
+                          hintStyle: const TextStyle(color: Colors.white24, fontSize: 11),
+                          filled: true,
+                          fillColor: const Color(0xFF0F141F),
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      flex: 1,
+                      child: TextField(
+                        controller: _cloudPortController,
+                        keyboardType: TextInputType.number,
+                        style: const TextStyle(color: Colors.white, fontSize: 12),
+                        decoration: InputDecoration(
+                          labelText: '端口',
+                          labelStyle: const TextStyle(color: TerminalTheme.textSecondary, fontSize: 11),
+                          hintText: '8000',
+                          filled: true,
+                          fillColor: const Color(0xFF0F141F),
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: _cloudTokenController,
+                        obscureText: true,
+                        style: const TextStyle(color: Colors.white, fontSize: 12),
+                        decoration: InputDecoration(
+                          labelText: '云端访问 Token 密钥 (Auth Token)',
+                          labelStyle: const TextStyle(color: TerminalTheme.textSecondary, fontSize: 11),
+                          filled: true,
+                          fillColor: const Color(0xFF0F141F),
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    ElevatedButton.icon(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF6C5CE7),
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                      ),
+                      onPressed: () {
+                        final host = _cloudHostController.text.trim();
+                        final port = int.tryParse(_cloudPortController.text.trim()) ?? 8000;
+                        sync.token = _cloudTokenController.text.trim();
+                        sync.connect(newHost: host, newPort: port);
+                        setState(() {});
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text('已重新发起连接到云端 -> $host:$port')),
+                        );
+                      },
+                      icon: const Icon(Icons.refresh_rounded, size: 14),
+                      label: const Text('连接云端', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 14),
+
+          // 同步控制与架构说明
+          Row(
+            children: [
+              Expanded(
+                child: ElevatedButton.icon(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: TerminalTheme.amberPrimary,
+                    foregroundColor: Colors.black,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                  ),
+                  onPressed: () {
+                    widget.state.syncAllToCloud();
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('已触发全屋电器与房间全量镜像上云！')),
+                    );
+                    setState(() {});
+                  },
+                  icon: const Icon(Icons.cloud_upload_rounded, size: 16),
+                  label: const Text('全量镜像同步到云端', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+
+          // 架构原理提示
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.04),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: Colors.white10),
+            ),
+            child: const Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(Icons.info_outline_rounded, color: TerminalTheme.amberPrimary, size: 16),
+                SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    '第一性原理工程规范：本系统抛弃了受限于同一个 Wi-Fi 路由器的 UDP 广播方案，采用纯公网可路由的标准全双工 WebSocket 长连接与 REST 接口。终端出站直连云端自动穿透家庭 NAT，即便将云端代码直接部署到公网 VPS（阿里云/腾讯云），终端亦只需填入对应公网 IP 或域名，即可瞬时实现异地数据同步与控制，100% 具备工业级云端迁移能力。',
+                    style: TextStyle(color: TerminalTheme.textSecondary, fontSize: 11, height: 1.4),
+                  ),
+                ),
+              ],
+            ),
           ),
         ],
       ),

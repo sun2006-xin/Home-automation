@@ -48,6 +48,13 @@ wifi_config.h
 
 # Flutter / Dart 产物与测试截图
 .dart_tool/
+
+# 云端持久化数据库与临时运行时数据
+SmartHome/cloud/data/*.db
+SmartHome/cloud/data/*.db-wal
+SmartHome/cloud/data/*.db-shm
+**/__pycache__/
+*.pyc
 .flutter-plugins
 .flutter-plugins-dependencies
 .packages

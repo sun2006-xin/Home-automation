@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../core/terminal_state.dart';
 import '../core/device_model.dart';
+import '../core/cloud_sync_service.dart';
 import 'theme/terminal_theme.dart';
 import 'widgets/ambient_background.dart';
 import 'widgets/category_cluster_deck.dart';
@@ -157,6 +158,10 @@ class _TerminalMainScreenState extends State<TerminalMainScreen> {
               ),
             ),
           ),
+          const SizedBox(width: 8),
+
+          // 云端公网全双工同步状态 Chip
+          _buildCloudStatusChip(isWarm),
 
           const Spacer(),
 
@@ -288,6 +293,66 @@ class _TerminalMainScreenState extends State<TerminalMainScreen> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildCloudStatusChip(bool isWarm) {
+    final status = widget.state.cloudSync.status;
+    final isOnline = status == CloudConnectionStatus.connected;
+    final isSyncing = status == CloudConnectionStatus.syncing;
+    final isConnecting = status == CloudConnectionStatus.connecting;
+
+    Color bgColor;
+    Color borderColor;
+    Color textColor;
+    String text;
+    IconData icon;
+
+    if (isOnline) {
+      bgColor = isWarm ? const Color(0x332ECC71) : const Color(0x222ECC71);
+      borderColor = const Color(0x662ECC71);
+      textColor = const Color(0xFF2ECC71);
+      text = '☁️ 云端已同步';
+      icon = Icons.cloud_done_rounded;
+    } else if (isSyncing || isConnecting) {
+      bgColor = isWarm ? const Color(0x33F39C12) : const Color(0x22F39C12);
+      borderColor = const Color(0x66F39C12);
+      textColor = const Color(0xFFF39C12);
+      text = isSyncing ? '☁️ 数据同步中' : '☁️ 云端连接中';
+      icon = Icons.cloud_sync_rounded;
+    } else {
+      bgColor = Colors.white.withValues(alpha: 0.05);
+      borderColor = Colors.white24;
+      textColor = TerminalTheme.textSecondary;
+      text = '☁️ 离线模式';
+      icon = Icons.cloud_off_rounded;
+    }
+
+    return GestureDetector(
+      onTap: () => _openSettingsModal(context),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+        decoration: BoxDecoration(
+          color: bgColor,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: borderColor),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 10, color: textColor),
+            const SizedBox(width: 3),
+            Text(
+              text,
+              style: TextStyle(
+                color: textColor,
+                fontSize: 10,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

@@ -1,0 +1,22 @@
+version: '3.8'
+
+services:
+  smarthome-cloud:
+    build: .
+    container_name: smarthome-cloud-hub
+    restart: always
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./data:/app/data
+    environment:
+      - SMARTHOME_CLOUD_HOST=0.0.0.0
+      - SMARTHOME_CLOUD_PORT=8000
+      - SMARTHOME_HOME_ID=h01
+      - SMARTHOME_CLOUD_TOKEN=smarthome_cloud_secret_token_2026
+      - ENABLE_MQTT_BRIDGE=false
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"

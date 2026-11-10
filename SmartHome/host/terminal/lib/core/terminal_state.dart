@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import '../hal/hardware_key_service.dart';
 import 'device_model.dart';
+import 'cloud_sync_service.dart';
 
 /// 终端全局状态与控制中枢 (TerminalState)
 ///
@@ -11,8 +12,11 @@ import 'device_model.dart';
 ///    - 下层：【房间分区层叠切换】，支持“客厅 / 主卧 / 次卧(南) / 次卧(北) / 书房 / 餐厅 / 卫生间”流式切换；
 /// 2. 真实温馨家居背景：集成家庭实景壁纸 + 磨砂毛玻璃护眼调光；
 /// 3. 物理按键兜底：OPPO 物理音量键双键拦截闭环；
-/// 4. 自定义房间与电器设置：支持多卧室、分方向房间自定义增删改。
+/// 4. 自定义房间与电器设置：支持多卧室、分方向房间自定义增删改；
+/// 5. 工业级公网云端双向同步：全双工 WebSocket 长连接，与公网云服务器毫秒级双向感知与状态镜像。
 class TerminalState extends ChangeNotifier {
+  // 工业级云端全双工同步服务
+  final CloudSyncService cloudSync = CloudSyncService();
   // 全屋设备清单 (覆盖客厅、主卧、次卧南/北、书房、餐厅、卫生间)
   final List<SmartDevice> allDevices = [
     // --- 客厅 ---
@@ -83,6 +87,7 @@ class TerminalState extends ChangeNotifier {
   TerminalState() {
     _initClock();
     _bindHardwareKeys();
+    _initCloudSync();
   }
 
   void _initClock() {
@@ -96,6 +101,100 @@ class TerminalState extends ChangeNotifier {
     HardwareKeyService().onActionTriggered = (action) {
       handlePhysicalAction(action);
     };
+  }
+
+  void _initCloudSync() {
+    cloudSync.onStatusChanged = (_) => notifyListeners();
+    cloudSync.onRemoteStateReceived = (deviceId, state) {
+      _applyRemoteState(deviceId, state);
+    };
+    cloudSync.onSnapshotReceived = (rawDevices, rawRooms) {
+      _applyRemoteSnapshot(rawDevices, rawRooms);
+    };
+    // 启动与云端的全双工 WebSocket 长连接
+    cloudSync.connect();
+  }
+
+  void _applyRemoteState(String deviceId, Map<String, dynamic> state) {
+    try {
+      final dev = allDevices.firstWhere((d) => d.id == deviceId);
+      if (dev is SwitchDevice && state.containsKey('on')) {
+        dev.on = state['on'] == true;
+      } else if (dev is ClimateDevice) {
+        if (state.containsKey('on')) dev.on = state['on'] == true;
+        if (state.containsKey('targetTemp')) {
+          dev.targetTemp = (state['targetTemp'] as num).toDouble();
+        }
+        if (state.containsKey('mode')) {
+          dev.mode = state['mode'].toString();
+        }
+      } else if (dev is CoverDevice && state.containsKey('pos')) {
+        dev.pos = (state['pos'] as num).toInt();
+      } else if (dev is HeaterDevice) {
+        if (state.containsKey('on')) dev.on = state['on'] == true;
+        if (state.containsKey('heating')) dev.heating = state['heating'] == true;
+        if (state.containsKey('powerWatts')) {
+          dev.powerWatts = (state['powerWatts'] as num).toDouble();
+        }
+      }
+      notifyListeners();
+    } catch (_) {}
+  }
+
+  void _applyRemoteSnapshot(List<Map<String, dynamic>> rawDevices, List<String> rawRooms) {
+    for (final raw in rawDevices) {
+      final devId = raw['id'] as String?;
+      final state = raw['state'] as Map<String, dynamic>?;
+      if (devId != null && state != null) {
+        _applyRemoteState(devId, state);
+      }
+    }
+    if (rawRooms.isNotEmpty) {
+      for (final r in rawRooms) {
+        if (!rooms.contains(r)) rooms.add(r);
+      }
+      notifyListeners();
+    }
+  }
+
+  /// 将终端当前所有电器与房间全量镜像同步到云端
+  void syncAllToCloud() {
+    final devList = allDevices.map((d) {
+      final Map<String, dynamic> st = {};
+      String type = 'switch';
+      String? subtype;
+      if (d is SwitchDevice) {
+        type = 'switch';
+        subtype = d.subtype;
+        st['on'] = d.on;
+      } else if (d is ClimateDevice) {
+        type = 'climate';
+        subtype = 'air_conditioner';
+        st['on'] = d.on;
+        st['targetTemp'] = d.targetTemp;
+        st['mode'] = d.mode;
+      } else if (d is CoverDevice) {
+        type = 'cover';
+        subtype = 'curtain';
+        st['pos'] = d.pos;
+      } else if (d is HeaterDevice) {
+        type = 'heater';
+        subtype = 'water_heater';
+        st['on'] = d.on;
+        st['heating'] = d.heating;
+        st['powerWatts'] = d.powerWatts;
+        st['remainingMinutes'] = d.remainingMinutes;
+      }
+      return {
+        'id': d.id,
+        'name': d.name,
+        'room': d.room,
+        'type': type,
+        'subtype': subtype,
+        'state': st,
+      };
+    }).toList();
+    cloudSync.uploadAllToCloud(devList, rooms);
   }
 
   // --- 品类获取器 (Category Getters) ---
@@ -178,28 +277,34 @@ class TerminalState extends ChangeNotifier {
   void toggleAllLights(bool turnOn) {
     for (final l in lightDevices) {
       l.on = turnOn;
+      cloudSync.sendStateUpdate(l.id, {'on': turnOn});
     }
     notifyListeners();
+    syncAllToCloud();
   }
 
   // --- 单设备快捷方法 ---
   void toggleSwitch(SwitchDevice d) {
     d.on = !d.on;
+    cloudSync.sendStateUpdate(d.id, {'on': d.on});
     notifyListeners();
   }
 
   void toggleClimate(ClimateDevice d) {
     d.on = !d.on;
+    cloudSync.sendStateUpdate(d.id, {'on': d.on, 'targetTemp': d.targetTemp, 'mode': d.mode});
     notifyListeners();
   }
 
   void adjustClimateTemp(ClimateDevice d, double delta) {
     d.targetTemp = (d.targetTemp + delta).clamp(16.0, 31.0);
+    cloudSync.sendStateUpdate(d.id, {'targetTemp': d.targetTemp});
     notifyListeners();
   }
 
   void setCoverPos(CoverDevice d, int pos) {
     d.pos = pos.clamp(0, 100);
+    cloudSync.sendStateUpdate(d.id, {'pos': d.pos});
     notifyListeners();
   }
 
@@ -207,6 +312,7 @@ class TerminalState extends ChangeNotifier {
     d.on = !d.on;
     d.heating = d.on;
     d.powerWatts = d.on ? 1980.0 : 0.0;
+    cloudSync.sendStateUpdate(d.id, {'on': d.on, 'heating': d.heating, 'powerWatts': d.powerWatts});
     notifyListeners();
   }
 
@@ -233,6 +339,7 @@ class TerminalState extends ChangeNotifier {
     if (clean.isNotEmpty && !rooms.contains(clean)) {
       rooms.add(clean);
       notifyListeners();
+      syncAllToCloud();
     }
   }
 
@@ -247,6 +354,7 @@ class TerminalState extends ChangeNotifier {
       selectedRoom = '全部';
     }
     notifyListeners();
+    syncAllToCloud();
   }
 
   void updateDevice(String id, {String? newName, String? newRoom}) {
@@ -258,6 +366,7 @@ class TerminalState extends ChangeNotifier {
       dev.room = newRoom.trim();
     }
     notifyListeners();
+    syncAllToCloud();
   }
 
   void toggleBackgroundTheme() {
@@ -317,6 +426,7 @@ class TerminalState extends ChangeNotifier {
         break;
     }
     notifyListeners();
+    syncAllToCloud();
   }
 
   void _showNotice(String text) {
