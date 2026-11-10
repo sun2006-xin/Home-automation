@@ -6,6 +6,7 @@
 *.obj
 *.hex
 *.bin
+!**/build_output/*.bin
 *.elf
 *.axf
 *.lst

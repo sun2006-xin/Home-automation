@@ -1,0 +1,21 @@
+idf_component_register(
+    SRCS
+        "app_main.c"
+        "link/link_gpio.c"
+        "driver/drv_stepper.c"
+        "driver/drv_key.c"
+        "driver/drv_led.c"
+        "net/net_ble.c"
+    INCLUDE_DIRS
+        "."
+        "link"
+        "driver"
+        "net"
+    REQUIRES
+        nvs_flash
+        driver
+        bt
+        log
+        esp_timer
+        freertos
+)
