@@ -31,6 +31,28 @@ class MainActivity : FlutterActivity() {
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
         methodChannel = MethodChannel(flutterEngine.dartExecutor.binaryMessenger, CHANNEL)
+        
+        // 接收 Flutter 业务层主动指令 (例如用户在设置界面确认点击【退出终端】)
+        methodChannel?.setMethodCallHandler { call, result ->
+            when (call.method) {
+                "exitTerminal" -> {
+                    // 用户在设置界面经确认后主动退出终端，返回手机系统桌面
+                    finishAffinity()
+                    result.success(true)
+                }
+                else -> result.notImplemented()
+            }
+        }
+    }
+
+    /**
+     * 禁用系统原生返回键退出行为 (防止日常误触物理/虚拟返回键导致退回手机桌面)
+     * 终端日常牢牢写死在前台，仅允许在【设置 -> 退出终端】中主动退出
+     */
+    @Deprecated("Deprecated in Java")
+    override fun onBackPressed() {
+        // 核心防御：完全不调用 super.onBackPressed()，拦截物理返回键与滑动手势
+        methodChannel?.invokeMethod("onBackPressedAttempt", null)
     }
 
     /**
@@ -45,6 +67,10 @@ class MainActivity : FlutterActivity() {
             KeyEvent.KEYCODE_VOLUME_DOWN -> {
                 methodChannel?.invokeMethod("onPhysicalKey", "VOLUME_DOWN")
                 return true // 彻底消费事件，阻止系统音量悬浮窗弹出
+            }
+            KeyEvent.KEYCODE_BACK -> {
+                // 彻底消费返回按键，防止退出应用
+                return true
             }
         }
         return super.onKeyDown(keyCode, event)

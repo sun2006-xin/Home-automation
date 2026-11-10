@@ -40,37 +40,41 @@ class _TerminalMainScreenState extends State<TerminalMainScreen> {
         final dateStr = DateFormat('MM月dd日 EEEE', 'zh_CN').format(widget.state.now);
         final isAway = widget.state.securityMode == SecurityMode.awayArmed;
 
-        return Scaffold(
-          body: AmbientHomeBackground(
-            isWarmMode: widget.state.useWarmHomeBackground,
-            child: Stack(
-              children: [
-                SafeArea(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        // ================= 1. 顶部总览栏：智慧家居终端 + 时钟 + 传感器 + 设置 =================
-                        _buildTopHeaderBar(timeStr, dateStr, isAway),
-                        const SizedBox(height: 6),
+        return PopScope(
+          canPop: false, // 核心防御：彻底锁定，禁止系统返回键与滑动手势退出终端！
+          onPopInvokedWithResult: (didPop, _) {},
+          child: Scaffold(
+            body: AmbientHomeBackground(
+              isWarmMode: widget.state.useWarmHomeBackground,
+              child: Stack(
+                children: [
+                  SafeArea(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          // ================= 1. 顶部总览栏：智慧家居终端 + 时钟 + 传感器 + 设置 =================
+                          _buildTopHeaderBar(timeStr, dateStr, isAway),
+                          const SizedBox(height: 6),
 
-                        // ================= 2. 上部第一层：品类中控聚合卡片 (卡内左右切换) =================
-                        CategoryClusterDeck(state: widget.state),
-                        const SizedBox(height: 6),
+                          // ================= 2. 上部第一层：品类中控聚合卡片 (卡内左右切换) =================
+                          CategoryClusterDeck(state: widget.state),
+                          const SizedBox(height: 6),
 
-                        // ================= 3. 下部第二层：房间分区层叠切换与房间专属电器 =================
-                        Expanded(
-                          child: RoomAppliancesDeck(state: widget.state),
-                        ),
-                      ],
+                          // ================= 3. 下部第二层：房间分区层叠切换与房间专属电器 =================
+                          Expanded(
+                            child: RoomAppliancesDeck(state: widget.state),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
-                ),
 
-                // 物理按键瞬态 HUD 浮层 (按音量键时优雅浮现)
-                PhysicalHudOverlay(notice: widget.state.physicalKeyNotice),
-              ],
+                  // 物理按键瞬态 HUD 浮层 (按音量键时优雅浮现)
+                  PhysicalHudOverlay(notice: widget.state.physicalKeyNotice),
+                ],
+              ),
             ),
           ),
         );

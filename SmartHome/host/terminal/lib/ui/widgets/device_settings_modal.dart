@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../../core/terminal_state.dart';
 import '../../core/device_model.dart';
 import '../theme/terminal_theme.dart';
@@ -33,6 +34,54 @@ class _DeviceSettingsModalState extends State<DeviceSettingsModal> with SingleTi
     _tabController.dispose();
     _newRoomController.dispose();
     super.dispose();
+  }
+
+  void _showExitTerminalDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (dlgContext) => AlertDialog(
+        backgroundColor: const Color(0xFF261C14),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: const BorderSide(color: Color(0xFFD86A38), width: 1.2),
+        ),
+        title: const Row(
+          children: [
+            Icon(Icons.power_settings_new_rounded, color: Color(0xFFD86A38), size: 22),
+            SizedBox(width: 8),
+            Text('退出智慧终端？', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+          ],
+        ),
+        content: const Text(
+          '智慧终端日常处于专机锁定防误触状态（系统返回键已禁用）。\n\n确认要退出中控程序，返回手机系统桌面吗？',
+          style: TextStyle(color: Color(0xFFCEBAAA), fontSize: 13, height: 1.5),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dlgContext),
+            child: const Text('取消', style: TextStyle(color: Colors.white70)),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFE74C3C),
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            ),
+            onPressed: () async {
+              Navigator.pop(dlgContext);
+              Navigator.pop(context);
+              const platform = MethodChannel('com.smarthome.terminal/hardware');
+              try {
+                await platform.invokeMethod('exitTerminal');
+              } catch (_) {
+                SystemNavigator.pop();
+              }
+            },
+            child: const Text('确认退出', style: TextStyle(fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -96,6 +145,31 @@ class _DeviceSettingsModalState extends State<DeviceSettingsModal> with SingleTi
                 ],
               ),
               const Spacer(),
+
+              // 退出终端按钮 (带安全防误触确认弹窗)
+              GestureDetector(
+                onTap: () => _showExitTerminalDialog(context),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: const Color(0x33E74C3C),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: const Color(0x66E74C3C)),
+                  ),
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.power_settings_new_rounded, size: 14, color: Color(0xFFFF7675)),
+                      SizedBox(width: 4),
+                      Text(
+                        '退出终端',
+                        style: TextStyle(color: Color(0xFFFF7675), fontSize: 11, fontWeight: FontWeight.bold),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(width: 10),
 
               // 温馨背景壁纸开关
               GestureDetector(
