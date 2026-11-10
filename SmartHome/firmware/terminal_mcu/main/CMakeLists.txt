@@ -1,0 +1,16 @@
+idf_component_register(
+    SRCS
+        "main.c"
+        "../bsp/bsp_display.c"
+        "../ui/ui_adaptive_deck.c"
+    INCLUDE_DIRS
+        "."
+        "../bsp"
+        "../ui"
+    REQUIRES
+        esp_lcd
+        driver
+        log
+        freertos
+        esp_timer
+)
