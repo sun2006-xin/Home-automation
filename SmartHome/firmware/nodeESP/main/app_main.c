@@ -11,6 +11,8 @@
 #include "node_config.h"
 #include "link/link.h"
 #include "net/net_ble.h"
+#include "net/net_wifi.h"
+#include "net/net_mqtt.h"
 
 static const char *TAG = "APP_MAIN";
 
@@ -35,9 +37,13 @@ void app_main(void) {
     // 3. 启动 BLE 近场直控 GATT 协议栈 (M1 验收硬指标：无需 WiFi 与云端即可手机直控)
     ESP_ERROR_CHECK(net_ble_init());
 
+    // 4. 启动本地局域网总线协议栈 (M2: WiFi STA 自动重连 + MQTT 自动发现/指令监听)
+    ESP_ERROR_CHECK(net_wifi_init());
+    ESP_ERROR_CHECK(net_mqtt_init());
+
     ESP_LOGI(TAG, "节点核心系统启动完成，进入主调度监控循环...");
 
-    // 4. 主系统周期轮询与健康看门狗
+    // 5. 主系统周期轮询与健康看门狗
     while (1) {
         link_gpio.poll();
         vTaskDelay(pdMS_TO_TICKS(100));

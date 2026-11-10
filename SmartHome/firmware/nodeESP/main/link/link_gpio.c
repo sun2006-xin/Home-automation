@@ -3,11 +3,16 @@
 #include "driver/drv_stepper.h"
 #include "driver/drv_key.h"
 #include "driver/drv_led.h"
+#include "net/net_ble.h"
+#include "net/net_mqtt.h"
 #include "esp_log.h"
 #include <string.h>
 #include <stdio.h>
 
 static const char *TAG = "LINK_GPIO";
+
+static uint8_t s_last_reported_pos = 0xFF;
+static bool s_last_was_moving = false;
 
 static void handle_physical_key(key_event_t event) {
     if (event == KEY_EVENT_SHORT_PRESS) {
@@ -67,11 +72,21 @@ static esp_err_t link_gpio_query(char *out_json, size_t max_len) {
 }
 
 static void link_gpio_poll(void) {
-    if (drv_stepper_is_moving()) {
+    bool moving = drv_stepper_is_moving();
+    uint8_t pos = drv_stepper_get_pos();
+
+    if (moving) {
         drv_led_set_mode(LED_MODE_FAST_BLINK);
     } else {
-        drv_led_set_mode(LED_MODE_SLOW_BLINK);
+        if (s_last_was_moving || s_last_reported_pos != pos) {
+            s_last_reported_pos = pos;
+            ESP_LOGI(TAG, "物理开度状态变更 -> 同步广播至 BLE 与 MQTT 总线: %d%%", pos);
+            net_ble_notify_state(pos);
+            net_mqtt_publish_state(pos);
+        }
+        drv_led_set_mode(LED_MODE_ON);
     }
+    s_last_was_moving = moving;
 }
 
 const link_t link_gpio = {

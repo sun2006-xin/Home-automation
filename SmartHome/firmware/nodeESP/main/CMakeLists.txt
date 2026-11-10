@@ -6,6 +6,8 @@ idf_component_register(
         "driver/drv_key.c"
         "driver/drv_led.c"
         "net/net_ble.c"
+        "net/net_wifi.c"
+        "net/net_mqtt.c"
     INCLUDE_DIRS
         "."
         "link"
@@ -18,4 +20,9 @@ idf_component_register(
         log
         esp_timer
         freertos
+        esp_wifi
+        esp_event
+        esp_netif
+        mqtt
+        json
 )

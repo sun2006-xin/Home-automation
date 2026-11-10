@@ -16,6 +16,12 @@ extern "C" {
  */
 esp_err_t net_ble_init(void);
 
+/**
+ * @brief 向已连接的 BLE 客户端推送当前状态通知
+ * @param pos 当前开度百分比 (0~100)
+ */
+void net_ble_notify_state(uint8_t pos);
+
 #ifdef __cplusplus
 }
 #endif

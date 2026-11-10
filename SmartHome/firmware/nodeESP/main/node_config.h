@@ -18,10 +18,16 @@ extern "C" {
 #endif
 
 /* ==================== 1. 设备身份定义 ==================== */
+#define HOME_ID                 "h01"
 #define NODE_DEVICE_ID          "C01"
 #define NODE_DEVICE_NAME        "客厅主窗帘"
 #define NODE_DEVICE_ROOM        "客厅"
 #define NODE_FW_VERSION         "v1.0.0"
+
+/* WiFi 与本地总线 MQTT Broker 缺省配置 */
+#define CONFIG_WIFI_SSID        "SmartHome_AP"
+#define CONFIG_WIFI_PASSWORD    "12345678"
+#define CONFIG_MQTT_BROKER_URI  "mqtt://192.168.1.100:1883"
 
 /* 设备能力类型: 1=SWITCH(开关/灯), 2=COVER(窗帘/行程), 3=CLIMATE(温控), 4=HEATER(加热/插座) */
 #define NODE_TYPE_COVER         1

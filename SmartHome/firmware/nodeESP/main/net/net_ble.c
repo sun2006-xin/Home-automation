@@ -145,6 +145,14 @@ static void ble_host_task(void *param) {
     nimble_port_freertos_deinit();
 }
 
+void net_ble_notify_state(uint8_t pos) {
+    if (s_state_val_handle == 0) return;
+    struct os_mbuf *om = ble_hs_mbuf_from_flat(&pos, sizeof(pos));
+    if (om != NULL) {
+        ble_gatts_notify_custom(BLE_HS_CONN_HANDLE_NONE, s_state_val_handle, om);
+    }
+}
+
 esp_err_t net_ble_init(void) {
     esp_err_t ret = nimble_port_init();
     if (ret != ESP_OK) {
