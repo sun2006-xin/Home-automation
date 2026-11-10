@@ -146,6 +146,42 @@ class _DeviceSettingsModalState extends State<DeviceSettingsModal> with SingleTi
               ),
               const Spacer(),
 
+              // 设为默认桌面按钮（彻底杜绝按Home键切出系统）
+              GestureDetector(
+                onTap: () async {
+                  const platform = MethodChannel('com.smarthome.terminal/hardware');
+                  try {
+                    await platform.invokeMethod('openHomeSettings');
+                  } catch (_) {
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('请前往手机系统设置 -> 默认应用 -> 桌面，选择【智慧家庭终端】')),
+                      );
+                    }
+                  }
+                },
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: const Color(0x330984E3),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: const Color(0x6674B9FF)),
+                  ),
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.home_work_rounded, size: 14, color: Color(0xFF74B9FF)),
+                      SizedBox(width: 4),
+                      Text(
+                        '设为默认桌面',
+                        style: TextStyle(color: Color(0xFF74B9FF), fontSize: 11, fontWeight: FontWeight.bold),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(width: 10),
+
               // 退出终端按钮 (带安全防误触确认弹窗)
               GestureDetector(
                 onTap: () => _showExitTerminalDialog(context),
