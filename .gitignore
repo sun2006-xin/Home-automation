@@ -44,3 +44,11 @@ secrets.h
 wifi_config.h
 *.pem
 *.key
+
+# Flutter / Dart 产物与测试截图
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+*.apk
+screenshot*.png
