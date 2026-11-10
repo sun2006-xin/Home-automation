@@ -41,9 +41,16 @@ class _DeviceSettingsModalState extends State<DeviceSettingsModal> with SingleTi
       height: MediaQuery.of(context).size.height * 0.90,
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
       decoration: BoxDecoration(
-        color: const Color(0xFF131824).withValues(alpha: 0.98),
+        color: widget.state.useWarmHomeBackground
+            ? const Color(0xF21F1710)
+            : const Color(0xFF131824).withValues(alpha: 0.98),
         borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-        border: Border.all(color: TerminalTheme.glassBorder, width: 1.5),
+        border: Border.all(
+          color: widget.state.useWarmHomeBackground
+              ? TerminalTheme.warmCardBorder
+              : TerminalTheme.glassBorder,
+          width: 1.5,
+        ),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.7),

@@ -3,41 +3,49 @@ import '../theme/terminal_theme.dart';
 import '../../core/device_model.dart';
 import '../../core/terminal_state.dart';
 
-/// 触感卡片分发器 (动态选择不同品类的交互卡片)
+/// 触感卡片分发器 (动态选择不同品类的交互卡片，根据主题自适应暖木/深空质感)
 Widget buildDeviceTile(SmartDevice device, TerminalState state) {
+  final isWarm = state.useWarmHomeBackground;
+
   if (device is SwitchDevice) {
     return TactileSwitchTile(
       device: device,
+      isWarm: isWarm,
       onToggle: () => state.toggleSwitch(device),
     );
   } else if (device is ClimateDevice) {
     return TactileClimateTile(
       device: device,
+      isWarm: isWarm,
       onToggle: () => state.toggleClimate(device),
       onTempAdjust: (delta) => state.adjustClimateTemp(device, delta),
     );
   } else if (device is CoverDevice) {
     return TactileCoverTile(
       device: device,
+      isWarm: isWarm,
       onSetPos: (pos) => state.setCoverPos(device, pos),
     );
   } else if (device is HeaterDevice) {
     return TactileHeaterTile(
       device: device,
+      isWarm: isWarm,
       onToggle: () => state.toggleHeater(device),
     );
   }
   return const SizedBox.shrink();
 }
 
-/// 1. 通用开关卡片 (灯具、风扇、插座 - 带微光晕染与触感缩放动效)
+/// 1. 通用开关卡片 (灯具、风扇、插座 - 暖木/深空自适应)
 class TactileSwitchTile extends StatefulWidget {
   final SwitchDevice device;
+  final bool isWarm;
   final VoidCallback onToggle;
 
   const TactileSwitchTile({
     super.key,
     required this.device,
+    this.isWarm = false,
     required this.onToggle,
   });
 
@@ -52,6 +60,7 @@ class _TactileSwitchTileState extends State<TactileSwitchTile> {
   Widget build(BuildContext context) {
     final active = widget.device.on;
     final isFan = widget.device.subtype == 'fan';
+    final isWarm = widget.isWarm;
 
     final Color accentColor = isFan ? TerminalTheme.cyanCool : TerminalTheme.amberWarm;
     final IconData iconData = isFan ? Icons.mode_fan_off_rounded : Icons.lightbulb_rounded;
@@ -73,20 +82,20 @@ class _TactileSwitchTileState extends State<TactileSwitchTile> {
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
             color: active
-                ? TerminalTheme.surfaceCardActive
-                : TerminalTheme.surfaceCard,
-            borderRadius: BorderRadius.circular(20),
+                ? (isWarm ? TerminalTheme.warmCardActive : TerminalTheme.surfaceCardActive)
+                : (isWarm ? TerminalTheme.warmCardBg : TerminalTheme.surfaceCard),
+            borderRadius: BorderRadius.circular(16),
             border: Border.all(
               color: active
                   ? accentColor.withValues(alpha: 0.6)
-                  : TerminalTheme.borderSubtle,
+                  : (isWarm ? TerminalTheme.warmCardBorder : TerminalTheme.borderSubtle),
               width: active ? 1.5 : 1.0,
             ),
             boxShadow: active
                 ? [
                     BoxShadow(
                       color: accentColor.withValues(alpha: 0.22),
-                      blurRadius: 18,
+                      blurRadius: 16,
                       spreadRadius: 2,
                     ),
                   ]
@@ -100,25 +109,25 @@ class _TactileSwitchTileState extends State<TactileSwitchTile> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Container(
-                    padding: const EdgeInsets.all(10),
+                    padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
                       color: active
                           ? accentColor.withValues(alpha: 0.2)
-                          : Colors.white.withValues(alpha: 0.05),
+                          : (isWarm ? const Color(0x33443325) : Colors.white.withValues(alpha: 0.05)),
                       shape: BoxShape.circle,
                     ),
                     child: Icon(
                       iconData,
-                      color: active ? accentColor : TerminalTheme.textMuted,
-                      size: 24,
+                      color: active ? accentColor : (isWarm ? TerminalTheme.warmTextMuted : TerminalTheme.textMuted),
+                      size: 20,
                     ),
                   ),
                   Text(
                     active ? '已开启' : '已关闭',
                     style: TextStyle(
-                      color: active ? accentColor : TerminalTheme.textMuted,
+                      color: active ? accentColor : (isWarm ? TerminalTheme.warmTextMuted : TerminalTheme.textMuted),
                       fontWeight: FontWeight.bold,
-                      fontSize: 12,
+                      fontSize: 11,
                     ),
                   ),
                 ],
@@ -130,17 +139,17 @@ class _TactileSwitchTileState extends State<TactileSwitchTile> {
                     widget.device.name,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: TerminalTheme.textPrimary,
-                      fontSize: 16,
+                    style: TextStyle(
+                      color: isWarm ? TerminalTheme.warmTextPrimary : TerminalTheme.textPrimary,
+                      fontSize: 14,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
                   const SizedBox(height: 2),
                   Text(
                     active ? '回路通电中' : '回路切断',
-                    style: const TextStyle(
-                      color: TerminalTheme.textSecondary,
+                    style: TextStyle(
+                      color: isWarm ? TerminalTheme.warmTextSecondary : TerminalTheme.textSecondary,
                       fontSize: 11,
                     ),
                   ),
@@ -154,15 +163,17 @@ class _TactileSwitchTileState extends State<TactileSwitchTile> {
   }
 }
 
-/// 2. 客厅空调卡片 (气流微风与数字步进)
+/// 2. 客厅空调卡片
 class TactileClimateTile extends StatefulWidget {
   final ClimateDevice device;
+  final bool isWarm;
   final VoidCallback onToggle;
   final Function(double delta) onTempAdjust;
 
   const TactileClimateTile({
     super.key,
     required this.device,
+    this.isWarm = false,
     required this.onToggle,
     required this.onTempAdjust,
   });
@@ -175,19 +186,21 @@ class _TactileClimateTileState extends State<TactileClimateTile> {
   @override
   Widget build(BuildContext context) {
     final active = widget.device.on;
+    final isWarm = widget.isWarm;
+
     return AnimatedContainer(
       duration: const Duration(milliseconds: 250),
       curve: Curves.easeOutCubic,
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: active
-            ? TerminalTheme.surfaceCardActive
-            : TerminalTheme.surfaceCard,
-        borderRadius: BorderRadius.circular(20),
+            ? (isWarm ? TerminalTheme.warmCardActive : TerminalTheme.surfaceCardActive)
+            : (isWarm ? TerminalTheme.warmCardBg : TerminalTheme.surfaceCard),
+        borderRadius: BorderRadius.circular(16),
         border: Border.all(
           color: active
               ? TerminalTheme.cyanCool.withValues(alpha: 0.6)
-              : TerminalTheme.borderSubtle,
+              : (isWarm ? TerminalTheme.warmCardBorder : TerminalTheme.borderSubtle),
           width: active ? 1.5 : 1.0,
         ),
         boxShadow: active ? TerminalTheme.cyanGlow : null,
@@ -202,19 +215,19 @@ class _TactileClimateTileState extends State<TactileClimateTile> {
               GestureDetector(
                 onTap: widget.onToggle,
                 child: Container(
-                  padding: const EdgeInsets.all(8),
+                  padding: const EdgeInsets.all(7),
                   decoration: BoxDecoration(
                     color: active
                         ? TerminalTheme.cyanCool.withValues(alpha: 0.2)
-                        : Colors.white.withValues(alpha: 0.05),
+                        : (isWarm ? const Color(0x33443325) : Colors.white.withValues(alpha: 0.05)),
                     shape: BoxShape.circle,
                   ),
                   child: Icon(
                     Icons.ac_unit_rounded,
                     color: active
                         ? TerminalTheme.cyanCool
-                        : TerminalTheme.textMuted,
-                    size: 22,
+                        : (isWarm ? TerminalTheme.warmTextMuted : TerminalTheme.textMuted),
+                    size: 18,
                   ),
                 ),
               ),
@@ -222,16 +235,16 @@ class _TactileClimateTileState extends State<TactileClimateTile> {
                 Row(
                   children: [
                     _circleButton(Icons.remove, () => widget.onTempAdjust(-0.5)),
-                    const SizedBox(width: 6),
+                    const SizedBox(width: 4),
                     _circleButton(Icons.add, () => widget.onTempAdjust(0.5)),
                   ],
                 )
               else
-                const Text(
+                Text(
                   '已待机',
                   style: TextStyle(
-                    color: TerminalTheme.textMuted,
-                    fontSize: 12,
+                    color: isWarm ? TerminalTheme.warmTextMuted : TerminalTheme.textMuted,
+                    fontSize: 11,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
@@ -248,8 +261,8 @@ class _TactileClimateTileState extends State<TactileClimateTile> {
                     style: TextStyle(
                       color: active
                           ? TerminalTheme.cyanCool
-                          : TerminalTheme.textMuted,
-                      fontSize: 22,
+                          : (isWarm ? TerminalTheme.warmTextMuted : TerminalTheme.textMuted),
+                      fontSize: 20,
                       fontWeight: FontWeight.bold,
                       height: 1.0,
                     ),
@@ -258,8 +271,8 @@ class _TactileClimateTileState extends State<TactileClimateTile> {
                     active ? '制冷' : '待机',
                     style: TextStyle(
                       color: active
-                          ? TerminalTheme.textSecondary
-                          : TerminalTheme.textMuted,
+                          ? (isWarm ? TerminalTheme.warmTextSecondary : TerminalTheme.textSecondary)
+                          : (isWarm ? TerminalTheme.warmTextMuted : TerminalTheme.textMuted),
                       fontSize: 11,
                     ),
                   ),
@@ -270,9 +283,9 @@ class _TactileClimateTileState extends State<TactileClimateTile> {
                 widget.device.name,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  color: TerminalTheme.textPrimary,
-                  fontSize: 14,
+                style: TextStyle(
+                  color: isWarm ? TerminalTheme.warmTextPrimary : TerminalTheme.textPrimary,
+                  fontSize: 13,
                   fontWeight: FontWeight.w600,
                 ),
               ),
@@ -284,28 +297,38 @@ class _TactileClimateTileState extends State<TactileClimateTile> {
   }
 
   Widget _circleButton(IconData icon, VoidCallback onTap) {
+    final isWarm = widget.isWarm;
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.all(6),
+        padding: const EdgeInsets.all(5),
         decoration: BoxDecoration(
-          color: TerminalTheme.borderSubtle,
+          color: isWarm ? TerminalTheme.warmButtonBg : TerminalTheme.borderSubtle,
+          border: Border.all(
+            color: isWarm ? TerminalTheme.warmButtonBorder : Colors.transparent,
+          ),
           shape: BoxShape.circle,
         ),
-        child: Icon(icon, size: 14, color: TerminalTheme.textPrimary),
+        child: Icon(
+          icon,
+          size: 13,
+          color: isWarm ? TerminalTheme.warmTextPrimary : TerminalTheme.textPrimary,
+        ),
       ),
     );
   }
 }
 
-/// 3. 客厅窗帘卡片 (机械轨道开度)
+/// 3. 客厅窗帘卡片
 class TactileCoverTile extends StatelessWidget {
   final CoverDevice device;
+  final bool isWarm;
   final Function(int pos) onSetPos;
 
   const TactileCoverTile({
     super.key,
     required this.device,
+    this.isWarm = false,
     required this.onSetPos,
   });
 
@@ -314,9 +337,11 @@ class TactileCoverTile extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: TerminalTheme.surfaceCard,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: TerminalTheme.borderSubtle),
+        color: isWarm ? TerminalTheme.warmCardBg : TerminalTheme.surfaceCard,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: isWarm ? TerminalTheme.warmCardBorder : TerminalTheme.borderSubtle,
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -326,15 +351,15 @@ class TactileCoverTile extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Container(
-                padding: const EdgeInsets.all(8),
+                padding: const EdgeInsets.all(7),
                 decoration: BoxDecoration(
-                  color: TerminalTheme.purpleMode.withValues(alpha: 0.15),
+                  color: const Color(0xFFB388FF).withValues(alpha: 0.15),
                   shape: BoxShape.circle,
                 ),
                 child: const Icon(
                   Icons.curtains_rounded,
-                  color: TerminalTheme.purpleMode,
-                  size: 22,
+                  color: Color(0xFFB388FF),
+                  size: 18,
                 ),
               ),
               Text(
@@ -342,7 +367,7 @@ class TactileCoverTile extends StatelessWidget {
                 style: TextStyle(
                   color: device.moving
                       ? TerminalTheme.amberWarm
-                      : TerminalTheme.textSecondary,
+                      : (isWarm ? const Color(0xFFD1B3FF) : TerminalTheme.textSecondary),
                   fontSize: 12,
                   fontWeight: FontWeight.bold,
                 ),
@@ -356,9 +381,9 @@ class TactileCoverTile extends StatelessWidget {
                 device.name,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  color: TerminalTheme.textPrimary,
-                  fontSize: 15,
+                style: TextStyle(
+                  color: isWarm ? TerminalTheme.warmTextPrimary : TerminalTheme.textPrimary,
+                  fontSize: 13,
                   fontWeight: FontWeight.w600,
                 ),
               ),
@@ -385,18 +410,23 @@ class TactileCoverTile extends StatelessWidget {
       child: GestureDetector(
         onTap: () => onSetPos(targetPos),
         child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 5),
+          padding: const EdgeInsets.symmetric(vertical: 4),
           alignment: Alignment.center,
           decoration: BoxDecoration(
             color: isSelected
-                ? TerminalTheme.purpleMode
-                : TerminalTheme.borderSubtle,
-            borderRadius: BorderRadius.circular(8),
+                ? (isWarm ? const Color(0xFF8C52FF) : TerminalTheme.purpleMode)
+                : (isWarm ? TerminalTheme.warmButtonBg : TerminalTheme.borderSubtle),
+            borderRadius: BorderRadius.circular(6),
+            border: Border.all(
+              color: isSelected
+                  ? const Color(0xFFD1B3FF)
+                  : (isWarm ? TerminalTheme.warmButtonBorder : Colors.transparent),
+            ),
           ),
           child: Text(
             label,
             style: TextStyle(
-              color: isSelected ? Colors.white : TerminalTheme.textSecondary,
+              color: isSelected ? Colors.white : (isWarm ? TerminalTheme.warmTextSecondary : TerminalTheme.textSecondary),
               fontSize: 10,
               fontWeight: FontWeight.bold,
             ),
@@ -407,14 +437,16 @@ class TactileCoverTile extends StatelessWidget {
   }
 }
 
-/// 4. 热水器卡片 (实时瓦数与加热状态)
+/// 4. 热水器卡片
 class TactileHeaterTile extends StatelessWidget {
   final HeaterDevice device;
+  final bool isWarm;
   final VoidCallback onToggle;
 
   const TactileHeaterTile({
     super.key,
     required this.device,
+    this.isWarm = false,
     required this.onToggle,
   });
 
@@ -428,20 +460,20 @@ class TactileHeaterTile extends StatelessWidget {
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
           color: active
-              ? TerminalTheme.surfaceCardActive
-              : TerminalTheme.surfaceCard,
-          borderRadius: BorderRadius.circular(20),
+              ? (isWarm ? TerminalTheme.warmCardActive : TerminalTheme.surfaceCardActive)
+              : (isWarm ? TerminalTheme.warmCardBg : TerminalTheme.surfaceCard),
+          borderRadius: BorderRadius.circular(16),
           border: Border.all(
             color: active
                 ? const Color(0xFFFF5722).withValues(alpha: 0.6)
-                : TerminalTheme.borderSubtle,
+                : (isWarm ? TerminalTheme.warmCardBorder : TerminalTheme.borderSubtle),
             width: active ? 1.5 : 1.0,
           ),
           boxShadow: active
               ? [
                   BoxShadow(
                     color: const Color(0xFFFF5722).withValues(alpha: 0.22),
-                    blurRadius: 18,
+                    blurRadius: 16,
                     spreadRadius: 2,
                   ),
                 ]
@@ -455,29 +487,25 @@ class TactileHeaterTile extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Container(
-                  padding: const EdgeInsets.all(8),
+                  padding: const EdgeInsets.all(7),
                   decoration: BoxDecoration(
                     color: active
                         ? const Color(0xFFFF5722).withValues(alpha: 0.2)
-                        : Colors.white.withValues(alpha: 0.05),
+                        : (isWarm ? const Color(0x33443325) : Colors.white.withValues(alpha: 0.05)),
                     shape: BoxShape.circle,
                   ),
                   child: Icon(
-                    Icons.water_damage_rounded,
-                    color: active
-                        ? const Color(0xFFFF5722)
-                        : TerminalTheme.textMuted,
-                    size: 22,
+                    Icons.water_drop_rounded,
+                    color: active ? const Color(0xFFFF5722) : (isWarm ? TerminalTheme.warmTextMuted : TerminalTheme.textMuted),
+                    size: 18,
                   ),
                 ),
                 Text(
-                  active ? '${device.powerWatts.toInt()} W' : '0 W',
+                  active ? '${device.powerWatts.toInt()}W' : '待机断电',
                   style: TextStyle(
-                    color: active
-                        ? const Color(0xFFFF5722)
-                        : TerminalTheme.textMuted,
-                    fontSize: 13,
+                    color: active ? const Color(0xFFFF5722) : (isWarm ? TerminalTheme.warmTextMuted : TerminalTheme.textMuted),
                     fontWeight: FontWeight.bold,
+                    fontSize: 11,
                   ),
                 ),
               ],
@@ -489,19 +517,17 @@ class TactileHeaterTile extends StatelessWidget {
                   device.name,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: TerminalTheme.textPrimary,
-                    fontSize: 15,
+                  style: TextStyle(
+                    color: isWarm ? TerminalTheme.warmTextPrimary : TerminalTheme.textPrimary,
+                    fontSize: 13,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  active ? '快速加热中 (${device.remainingMinutes}m)' : '已保温停止',
+                  active ? '加热恒温中' : '回路切断',
                   style: TextStyle(
-                    color: active
-                        ? TerminalTheme.textSecondary
-                        : TerminalTheme.textMuted,
+                    color: isWarm ? TerminalTheme.warmTextSecondary : TerminalTheme.textSecondary,
                     fontSize: 11,
                   ),
                 ),

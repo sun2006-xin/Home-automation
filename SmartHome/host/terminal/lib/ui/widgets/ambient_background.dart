@@ -54,18 +54,18 @@ class AmbientHomeBackground extends StatelessWidget {
           ),
         ),
 
-        // 2. 中层：暖调半透明遮罩与毛玻璃漫反射（确保卡片与文字极佳的可读性）
+        // 2. 中层：暖调半透明遮罩与毛玻璃漫反射（与原木家具壁纸自然融为一体）
         Positioned.fill(
           child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 4.5, sigmaY: 4.5),
+            filter: ImageFilter.blur(sigmaX: 4.0, sigmaY: 4.0),
             child: Container(
-              decoration: BoxDecoration(
+              decoration: const BoxDecoration(
                 gradient: LinearGradient(
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
                   colors: [
-                    const Color(0x990A0D14), // 顶部 60% 深度暗化
-                    const Color(0xB807090E), // 底部 72% 深度暗化
+                    Color(0x751A120B), // 顶部暖栗色半透
+                    Color(0x9E140C07), // 底部温暖深褐过渡
                   ],
                 ),
               ),

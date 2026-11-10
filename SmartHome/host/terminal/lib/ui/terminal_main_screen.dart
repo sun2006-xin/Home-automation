@@ -80,13 +80,18 @@ class _TerminalMainScreenState extends State<TerminalMainScreen> {
 
   /// 顶部导航与状态总览栏
   Widget _buildTopHeaderBar(String timeStr, String dateStr, bool isAway) {
+    final isWarm = widget.state.useWarmHomeBackground;
+
     return Container(
       height: 38,
       padding: const EdgeInsets.symmetric(horizontal: 12),
       decoration: BoxDecoration(
-        color: const Color(0xFF131822).withValues(alpha: 0.72),
+        color: isWarm ? TerminalTheme.warmTopBarBg : const Color(0xFF131822).withValues(alpha: 0.72),
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: TerminalTheme.glassBorder),
+        border: Border.all(
+          color: isWarm ? TerminalTheme.warmCardBorder : TerminalTheme.glassBorder,
+          width: 1.0,
+        ),
       ),
       child: Row(
         children: [
@@ -97,19 +102,23 @@ class _TerminalMainScreenState extends State<TerminalMainScreen> {
               Container(
                 width: 8,
                 height: 8,
-                decoration: const BoxDecoration(
+                decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: Color(0xFF00E676),
+                  color: isWarm ? TerminalTheme.amberWarm : const Color(0xFF00E676),
                   boxShadow: [
-                    BoxShadow(color: Color(0xFF00E676), blurRadius: 6, spreadRadius: 1),
+                    BoxShadow(
+                      color: isWarm ? TerminalTheme.amberWarm : const Color(0xFF00E676),
+                      blurRadius: 6,
+                      spreadRadius: 1,
+                    ),
                   ],
                 ),
               ),
               const SizedBox(width: 6),
-              const Text(
+              Text(
                 '智慧家居终端',
                 style: TextStyle(
-                  color: Colors.white,
+                  color: isWarm ? TerminalTheme.warmTextPrimary : Colors.white,
                   fontSize: 14,
                   fontWeight: FontWeight.bold,
                   letterSpacing: 0.5,
@@ -124,19 +133,21 @@ class _TerminalMainScreenState extends State<TerminalMainScreen> {
             padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
             decoration: BoxDecoration(
               color: isAway
-                  ? const Color(0xFF6C5CE7).withValues(alpha: 0.25)
-                  : const Color(0xFF00E676).withValues(alpha: 0.15),
+                  ? (isWarm ? const Color(0x66B33927) : const Color(0xFF6C5CE7).withValues(alpha: 0.25))
+                  : (isWarm ? const Color(0x554A3B2C) : const Color(0xFF00E676).withValues(alpha: 0.15)),
               borderRadius: BorderRadius.circular(10),
               border: Border.all(
                 color: isAway
-                    ? const Color(0xFFA29BFE)
-                    : const Color(0xFF00E676).withValues(alpha: 0.5),
+                    ? (isWarm ? const Color(0xFFE17055) : const Color(0xFFA29BFE))
+                    : (isWarm ? TerminalTheme.amberWarm : const Color(0xFF00E676).withValues(alpha: 0.5)),
               ),
             ),
             child: Text(
               isAway ? '🛡️ 离家布防' : '🏠 居家守护',
               style: TextStyle(
-                color: isAway ? const Color(0xFFA29BFE) : const Color(0xFF00E676),
+                color: isAway
+                    ? (isWarm ? const Color(0xFFFAB1A0) : const Color(0xFFA29BFE))
+                    : (isWarm ? TerminalTheme.amberWarm : const Color(0xFF00E676)),
                 fontSize: 10,
                 fontWeight: FontWeight.bold,
               ),
@@ -151,8 +162,8 @@ class _TerminalMainScreenState extends State<TerminalMainScreen> {
             children: [
               Text(
                 timeStr,
-                style: const TextStyle(
-                  color: Colors.white,
+                style: TextStyle(
+                  color: isWarm ? TerminalTheme.warmTextPrimary : Colors.white,
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
                   letterSpacing: -0.5,
@@ -161,19 +172,28 @@ class _TerminalMainScreenState extends State<TerminalMainScreen> {
               const SizedBox(width: 6),
               Text(
                 dateStr,
-                style: const TextStyle(color: TerminalTheme.textSecondary, fontSize: 11),
+                style: TextStyle(
+                  color: isWarm ? TerminalTheme.warmTextSecondary : TerminalTheme.textSecondary,
+                  fontSize: 11,
+                ),
               ),
               const SizedBox(width: 12),
               // 环境传感器
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                 decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.06),
+                  color: isWarm ? const Color(0x4036271D) : Colors.white.withValues(alpha: 0.06),
                   borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                    color: isWarm ? TerminalTheme.warmCardBorder.withValues(alpha: 0.4) : Colors.transparent,
+                  ),
                 ),
                 child: Text(
                   '🌡️ ${widget.state.sensors.indoorTemp.toStringAsFixed(1)}°C  💧 ${widget.state.sensors.humidity.toInt()}%',
-                  style: const TextStyle(color: TerminalTheme.textPrimary, fontSize: 11),
+                  style: TextStyle(
+                    color: isWarm ? TerminalTheme.warmTextPrimary : TerminalTheme.textPrimary,
+                    fontSize: 11,
+                  ),
                 ),
               ),
             ],
@@ -185,9 +205,9 @@ class _TerminalMainScreenState extends State<TerminalMainScreen> {
           Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              _buildKeyGuideChip('音量+', '回家'),
+              _buildKeyGuideChip('音量+', '回家', isWarm),
               const SizedBox(width: 4),
-              _buildKeyGuideChip('音量-', '离家'),
+              _buildKeyGuideChip('音量-', '离家', isWarm),
             ],
           ),
           const SizedBox(width: 8),
@@ -198,19 +218,29 @@ class _TerminalMainScreenState extends State<TerminalMainScreen> {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
               decoration: BoxDecoration(
-                color: TerminalTheme.amberPrimary.withValues(alpha: 0.15),
+                color: isWarm
+                    ? TerminalTheme.warmButtonActive.withValues(alpha: 0.3)
+                    : TerminalTheme.amberPrimary.withValues(alpha: 0.15),
                 borderRadius: BorderRadius.circular(6),
-                border: Border.all(color: TerminalTheme.amberPrimary.withValues(alpha: 0.5)),
+                border: Border.all(
+                  color: isWarm
+                      ? TerminalTheme.warmCardBorder
+                      : TerminalTheme.amberPrimary.withValues(alpha: 0.5),
+                ),
               ),
-              child: const Row(
+              child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(Icons.tune_rounded, color: TerminalTheme.amberPrimary, size: 13),
-                  SizedBox(width: 4),
+                  Icon(
+                    Icons.tune_rounded,
+                    color: isWarm ? TerminalTheme.warmTextPrimary : TerminalTheme.amberPrimary,
+                    size: 13,
+                  ),
+                  const SizedBox(width: 4),
                   Text(
                     '设置',
                     style: TextStyle(
-                      color: TerminalTheme.amberPrimary,
+                      color: isWarm ? TerminalTheme.warmTextPrimary : TerminalTheme.amberPrimary,
                       fontSize: 11,
                       fontWeight: FontWeight.bold,
                     ),
@@ -224,25 +254,34 @@ class _TerminalMainScreenState extends State<TerminalMainScreen> {
     );
   }
 
-  Widget _buildKeyGuideChip(String keyLabel, String actionLabel) {
+  Widget _buildKeyGuideChip(String keyLabel, String actionLabel, bool isWarm) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.05),
+        color: isWarm ? const Color(0x4036271D) : Colors.white.withValues(alpha: 0.05),
         borderRadius: BorderRadius.circular(5),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+        border: Border.all(
+          color: isWarm ? TerminalTheme.warmCardBorder.withValues(alpha: 0.3) : Colors.white.withValues(alpha: 0.08),
+        ),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           Text(
             keyLabel,
-            style: const TextStyle(color: TerminalTheme.amberPrimary, fontSize: 10, fontWeight: FontWeight.bold),
+            style: TextStyle(
+              color: isWarm ? TerminalTheme.amberWarm : TerminalTheme.amberPrimary,
+              fontSize: 10,
+              fontWeight: FontWeight.bold,
+            ),
           ),
           const SizedBox(width: 3),
           Text(
             actionLabel,
-            style: const TextStyle(color: TerminalTheme.textSecondary, fontSize: 10),
+            style: TextStyle(
+              color: isWarm ? TerminalTheme.warmTextSecondary : TerminalTheme.textSecondary,
+              fontSize: 10,
+            ),
           ),
         ],
       ),

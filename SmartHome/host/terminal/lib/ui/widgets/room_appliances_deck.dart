@@ -64,6 +64,8 @@ class RoomAppliancesDeck extends StatelessWidget {
               ? state.allDevices.length
               : state.allDevices.where((d) => d.room == room).length;
 
+          final isWarm = state.useWarmHomeBackground;
+
           return GestureDetector(
             onTap: () => state.selectRoom(room),
             child: AnimatedContainer(
@@ -71,19 +73,21 @@ class RoomAppliancesDeck extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
               decoration: BoxDecoration(
                 color: isSelected
-                    ? const Color(0xFF6C5CE7)
-                    : const Color(0xFF161A26).withValues(alpha: 0.75),
+                    ? (isWarm ? TerminalTheme.warmPillActive : const Color(0xFF6C5CE7))
+                    : (isWarm ? TerminalTheme.warmCardBg : const Color(0xFF161A26).withValues(alpha: 0.75)),
                 borderRadius: BorderRadius.circular(16),
                 border: Border.all(
                   color: isSelected
-                      ? const Color(0xFFA29BFE)
-                      : Colors.white.withValues(alpha: 0.08),
+                      ? (isWarm ? const Color(0xFFFFD180) : const Color(0xFFA29BFE))
+                      : (isWarm ? TerminalTheme.warmCardBorder : Colors.white.withValues(alpha: 0.08)),
                   width: isSelected ? 1.4 : 1.0,
                 ),
                 boxShadow: isSelected
                     ? [
                         BoxShadow(
-                          color: const Color(0xFF6C5CE7).withValues(alpha: 0.35),
+                          color: isWarm
+                              ? const Color(0x66C87D32)
+                              : const Color(0xFF6C5CE7).withValues(alpha: 0.35),
                           blurRadius: 8,
                           offset: const Offset(0, 2),
                         ),
@@ -96,7 +100,9 @@ class RoomAppliancesDeck extends StatelessWidget {
                   Text(
                     room,
                     style: TextStyle(
-                      color: isSelected ? Colors.white : TerminalTheme.textSecondary,
+                      color: isSelected
+                          ? Colors.white
+                          : (isWarm ? TerminalTheme.warmTextSecondary : TerminalTheme.textSecondary),
                       fontSize: 12,
                       fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
                     ),
@@ -107,13 +113,13 @@ class RoomAppliancesDeck extends StatelessWidget {
                     decoration: BoxDecoration(
                       color: isSelected
                           ? Colors.white.withValues(alpha: 0.25)
-                          : Colors.white.withValues(alpha: 0.06),
+                          : (isWarm ? const Color(0x4036271D) : Colors.white.withValues(alpha: 0.06)),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Text(
                       '$count',
                       style: TextStyle(
-                        color: isSelected ? Colors.white : TerminalTheme.textMuted,
+                        color: isSelected ? Colors.white : (isWarm ? TerminalTheme.warmTextMuted : TerminalTheme.textMuted),
                         fontSize: 10,
                         fontWeight: FontWeight.bold,
                       ),

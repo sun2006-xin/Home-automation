@@ -51,6 +51,7 @@ class CategoryClusterDeck extends StatelessWidget {
     final currentLight = lights[currentIndex];
 
     return _CategoryCardContainer(
+      isWarm: state.useWarmHomeBackground,
       borderColor: currentLight.on
           ? TerminalTheme.amberWarm.withValues(alpha: 0.5)
           : TerminalTheme.glassBorder,
@@ -193,6 +194,7 @@ class CategoryClusterDeck extends StatelessWidget {
     final SwitchDevice? fan = isClimate ? null : (dev as SwitchDevice);
 
     return _CategoryCardContainer(
+      isWarm: state.useWarmHomeBackground,
       borderColor: isOn
           ? TerminalTheme.cyanCool.withValues(alpha: 0.5)
           : TerminalTheme.glassBorder,
@@ -320,6 +322,7 @@ class CategoryClusterDeck extends StatelessWidget {
     final curCover = covers[currentIndex];
 
     return _CategoryCardContainer(
+      isWarm: state.useWarmHomeBackground,
       borderColor: curCover.pos > 0
           ? const Color(0xFFB388FF).withValues(alpha: 0.5)
           : TerminalTheme.glassBorder,
@@ -418,6 +421,7 @@ class CategoryClusterDeck extends StatelessWidget {
     final SwitchDevice? socket = isHeater ? null : (curDev as SwitchDevice);
 
     return _CategoryCardContainer(
+      isWarm: state.useWarmHomeBackground,
       borderColor: isOn
           ? Colors.orangeAccent.withValues(alpha: 0.5)
           : TerminalTheme.glassBorder,
@@ -574,6 +578,7 @@ class CategoryClusterDeck extends StatelessWidget {
 
   Widget _buildEmptyCard(String title, String subtitle) {
     return _CategoryCardContainer(
+      isWarm: state.useWarmHomeBackground,
       child: Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -588,21 +593,24 @@ class CategoryClusterDeck extends StatelessWidget {
   }
 
   Widget _buildSquareStepButton(String symbol, VoidCallback onTap) {
+    final isWarm = state.useWarmHomeBackground;
     return GestureDetector(
       onTap: onTap,
       child: Container(
         width: 28,
         height: 26,
         decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.08),
+          color: isWarm ? TerminalTheme.warmButtonBg : Colors.white.withValues(alpha: 0.08),
           borderRadius: BorderRadius.circular(5),
-          border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+          border: Border.all(
+            color: isWarm ? TerminalTheme.warmButtonBorder : Colors.white.withValues(alpha: 0.1),
+          ),
         ),
         child: Center(
           child: Text(
             symbol,
-            style: const TextStyle(
-              color: Colors.white,
+            style: TextStyle(
+              color: isWarm ? TerminalTheme.warmTextPrimary : Colors.white,
               fontSize: 14,
               fontWeight: FontWeight.bold,
             ),
@@ -618,26 +626,29 @@ class CategoryClusterDeck extends StatelessWidget {
     Color activeColor = TerminalTheme.amberWarm,
     required VoidCallback onTap,
   }) {
+    final isWarm = state.useWarmHomeBackground;
     return GestureDetector(
       onTap: onTap,
       child: Container(
         height: 26,
         decoration: BoxDecoration(
           color: active
-              ? activeColor.withValues(alpha: 0.25)
-              : Colors.white.withValues(alpha: 0.06),
+              ? (isWarm ? activeColor.withValues(alpha: 0.35) : activeColor.withValues(alpha: 0.25))
+              : (isWarm ? TerminalTheme.warmButtonBg : Colors.white.withValues(alpha: 0.06)),
           borderRadius: BorderRadius.circular(6),
           border: Border.all(
             color: active
-                ? activeColor.withValues(alpha: 0.6)
-                : Colors.white.withValues(alpha: 0.1),
+                ? activeColor.withValues(alpha: 0.8)
+                : (isWarm ? TerminalTheme.warmButtonBorder : Colors.white.withValues(alpha: 0.1)),
           ),
         ),
         child: Center(
           child: Text(
             label,
             style: TextStyle(
-              color: active ? activeColor : Colors.white,
+              color: active
+                  ? activeColor
+                  : (isWarm ? TerminalTheme.warmTextSecondary : Colors.white),
               fontSize: 11,
               fontWeight: active ? FontWeight.bold : FontWeight.normal,
             ),
@@ -652,23 +663,30 @@ class CategoryClusterDeck extends StatelessWidget {
 class _CategoryCardContainer extends StatelessWidget {
   final Widget child;
   final Color? borderColor;
+  final bool isWarm;
 
-  const _CategoryCardContainer({required this.child, this.borderColor});
+  const _CategoryCardContainer({
+    required this.child,
+    this.borderColor,
+    this.isWarm = false,
+  });
 
   @override
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
       decoration: BoxDecoration(
-        color: const Color(0xFF131822).withValues(alpha: 0.72),
+        color: isWarm
+            ? TerminalTheme.warmCardBg
+            : const Color(0xFF131822).withValues(alpha: 0.72),
         borderRadius: BorderRadius.circular(14),
         border: Border.all(
-          color: borderColor ?? TerminalTheme.glassBorder,
+          color: borderColor ?? (isWarm ? TerminalTheme.warmCardBorder : TerminalTheme.glassBorder),
           width: 1.2,
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.25),
+            color: isWarm ? const Color(0x33120A05) : Colors.black.withValues(alpha: 0.25),
             blurRadius: 8,
             offset: const Offset(0, 3),
           ),
