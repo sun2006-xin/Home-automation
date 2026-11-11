@@ -17,6 +17,7 @@ class SyncManager:
     def __init__(self):
         self.active_connections: Set[WebSocket] = set()
         self._lock = asyncio.Lock()
+        self.on_state_updated = None
 
     async def connect(self, websocket: WebSocket, client_id: str):
         await websocket.accept()
@@ -89,6 +90,8 @@ class SyncManager:
                             }
                         )
                         await self.broadcast(broadcast_msg, sender=websocket)
+                        if self.on_state_updated:
+                            await self.on_state_updated(updated_dev, new_state, src)
 
             elif msg_type == "SYNC_UPLOAD":
                 # 终端全量上报（如终端首次启动或手动触发全量同步）

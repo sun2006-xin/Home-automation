@@ -3,10 +3,11 @@ SmartHome Cloud Backend - Production Gateway Entrypoint
 基于 FastAPI + WebSocket 的高并发异步中枢服务，云原生容器化就绪。
 """
 
+import json
 import time
 import logging
 from contextlib import asynccontextmanager
-from typing import List, Optional
+from typing import Any, Dict, List, Optional
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException, Header, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, FileResponse
@@ -26,13 +27,96 @@ logging.basicConfig(
 )
 logger = logging.getLogger("smarthome.cloud")
 
+import asyncio
+from . import rules_engine
+from .mqtt_bridge import mqtt_bridge
+
 start_time = time.time()
+
+
+async def _dispatch_mqtt_state(device_id: str, delta_state: Dict[str, Any], src: str) -> Optional[DeviceItem]:
+    """处理物理节点或模拟器通过 MQTT 上报的状态（不回传 MQTT）。"""
+    return await apply_state_change(device_id, delta_state, src=src)
+
+
+async def _dispatch_mqtt_discovery(doc: Dict[str, Any]) -> None:
+    """处理物理节点上线自注册 `_discovery` 报文。"""
+    item = DeviceItem(
+        id=str(doc["id"]),
+        name=str(doc.get("name") or doc["id"]),
+        room=str(doc.get("room") or "未分配"),
+        type=str(doc.get("type") or "switch"),
+        subtype=doc.get("subtype"),
+        state=dict(doc.get("state") or {"online": True}),
+    )
+    database.upsert_device(item)
+    all_devs = database.get_all_devices()
+    all_rooms = database.get_rooms()
+    await sync_manager.broadcast(
+        WebSocketEnvelope(
+            type="SNAPSHOT_SYNC",
+            payload={
+                "src": f"mqtt:discovery:{item.id}",
+                "devices": [d.model_dump() for d in all_devs],
+                "rooms": all_rooms,
+            },
+        )
+    )
+
+
+async def _on_ws_state_updated(updated_dev: DeviceItem, delta_state: Dict[str, Any], src: str) -> None:
+    mqtt_bridge.publish_device_command(updated_dev.id, delta_state, src=src)
+    await rules_engine.rules_engine.evaluate_for_device(updated_dev, delta_state, src=src)
+
+
+async def _on_rule_triggered(event_payload: Dict[str, Any]) -> None:
+    await sync_manager.broadcast(WebSocketEnvelope(type="RULE_TRIGGERED", payload=event_payload))
+
+
+async def apply_state_change(
+    device_id: str,
+    delta_state: Dict[str, Any],
+    src: str = "cloud",
+    exclude_ws: Any = None,
+) -> Optional[DeviceItem]:
+    """统一状态变更与联动调度管线。"""
+    updated_dev = database.update_device_state(device_id, delta_state, src=src)
+    if not updated_dev:
+        return None
+
+    await sync_manager.broadcast(
+        WebSocketEnvelope(
+            type="STATE_UPDATE",
+            payload={
+                "device_id": device_id,
+                "state": updated_dev.state,
+                "src": src,
+                "updated_at": updated_dev.updated_at,
+            },
+        ),
+        sender=exclude_ws,
+    )
+    mqtt_bridge.publish_device_command(device_id, delta_state, src=src)
+    await rules_engine.rules_engine.evaluate_for_device(updated_dev, delta_state, src=src)
+    return updated_dev
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # 启动初始化
     logger.info("Initializing SmartHome Cloud Database...")
     database.init_db()
+    rules_engine.init_rules_schema()
+    sync_manager.on_state_updated = _on_ws_state_updated
+    rules_engine.rules_engine.configure(
+        action_executor=lambda dev_id, st, src: apply_state_change(dev_id, st, src=src),
+        notifier=_on_rule_triggered,
+    )
+    mqtt_bridge.configure_callbacks(
+        loop=asyncio.get_running_loop(),
+        on_state=_dispatch_mqtt_state,
+        on_discovery=_dispatch_mqtt_discovery,
+    )
+    mqtt_bridge.start()
     
     # 检查是否已有初始设备，如无则写入基础全屋电器蓝本
     existing = database.get_all_devices()
@@ -59,6 +143,7 @@ async def lifespan(app: FastAPI):
     
     logger.info(f"SmartHome Cloud Backend Started on {config.HOST}:{config.PORT}")
     yield
+    mqtt_bridge.stop()
     logger.info("SmartHome Cloud Backend Shutting Down...")
 
 app = FastAPI(
@@ -116,6 +201,8 @@ def get_cloud_info():
         "room_count": len(rooms),
         "active_clients": len(sync_manager.active_connections),
         "mqtt_bridge_enabled": config.ENABLE_MQTT_BRIDGE,
+        "mqtt_status": mqtt_bridge.status(),
+        "rules_count": len(rules_engine.list_rules()),
         "protocols_supported": ["REST/JSON", "WebSocket/Duplex", "MQTT/1883"]
     }
 
@@ -138,21 +225,9 @@ async def update_device_state_api(device_id: str, payload: StateUpdatePayload):
     修改或下发设备状态（云端/手机/控制台统一入口）
     自动触发数据持久化与所有连接端（手机终端、Web 面板）实时全双工广播
     """
-    updated_dev = database.update_device_state(device_id, payload.state, src=payload.src)
+    updated_dev = await apply_state_change(device_id, payload.state, src=payload.src)
     if not updated_dev:
         raise HTTPException(status_code=404, detail=f"Device {device_id} not found")
-    
-    # 广播给已连接的 WebSocket 终端
-    broadcast_envelope = WebSocketEnvelope(
-        type="STATE_UPDATE",
-        payload={
-            "device_id": device_id,
-            "state": updated_dev.state,
-            "src": payload.src,
-            "updated_at": updated_dev.updated_at
-        }
-    )
-    await sync_manager.broadcast(broadcast_envelope)
     return updated_dev
 
 @app.post("/api/v1/sync", response_model=SyncBatchResponse)
@@ -252,6 +327,7 @@ async def trigger_scene(scene_id: str, src: str = Query("cloud")):
         delta = _resolve_scene_state(scene_id, dev)
         if delta is not None:
             database.update_device_state(dev.id, delta, src=f"{src}:scene:{scene_id}")
+            mqtt_bridge.publish_device_command(dev.id, delta, src=f"{src}:scene:{scene_id}")
             updated_ids.append(dev.id)
 
     all_devs = database.get_all_devices()
@@ -275,6 +351,34 @@ async def trigger_scene(scene_id: str, src: str = Query("cloud")):
         "updated_ids": updated_ids,
         "devices": all_devs,
     }
+
+app.include_router(rules_engine.router)
+
+
+@app.get("/api/v1/mqtt/status")
+def get_mqtt_status():
+    """查询云端 MQTT 桥接连接态与收发统计"""
+    return mqtt_bridge.status()
+
+
+@app.post("/api/v1/simulator/node-event")
+async def simulate_node_event(body: Dict[str, Any]):
+    """
+    硬件节点测试台（无物理 ESP32-S3/C3 接入时，按真实 MQTT 主题载荷注入上行报文）
+    """
+    topic = body.get("topic")
+    if not topic:
+        dev_id = body.get("device_id", "C01")
+        channel = body.get("channel", "state")
+        topic = f"sh/{config.HOME_ID}/{dev_id}/{channel}"
+
+    payload = body.get("payload", {})
+    raw_payload = payload if isinstance(payload, str) else json.dumps(payload, ensure_ascii=False)
+    res = await mqtt_bridge.process_message(topic, raw_payload)
+    if not res.get("handled"):
+        raise HTTPException(status_code=400, detail=res.get("reason", "Invalid MQTT simulation event"))
+    return {"success": True, "topic": topic, **res}
+
 
 # --- WebSocket 终端长连接信道 ---
 

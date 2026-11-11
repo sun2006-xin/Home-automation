@@ -7,6 +7,7 @@
 *.hex
 *.bin
 !**/build_output/*.bin
+!**/build_output/**/*.bin
 *.elf
 *.axf
 *.lst
@@ -60,3 +61,7 @@ SmartHome/cloud/data/*.db-shm
 .packages
 *.apk
 screenshot*.png
+
+# ESP-IDF 生成配置 (按芯片目标实时生成)
+SmartHome/firmware/nodeESP/sdkconfig
+SmartHome/firmware/nodeESP/sdkconfig.old

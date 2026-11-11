@@ -57,6 +57,7 @@ esp_err_t drv_key_init(key_callback_t cb) {
     esp_err_t err = gpio_config(&io_conf);
     if (err != ESP_OK) return err;
 
-    xTaskCreate(key_scan_task, "key_scan_task", 2048, NULL, 4, NULL);
+    /* 回调链路内含 ESP_LOG 输出，Xtensa 架构需 >= 3072B 栈空间 */
+    xTaskCreate(key_scan_task, "key_scan_task", 3072, NULL, 4, NULL);
     return ESP_OK;
 }

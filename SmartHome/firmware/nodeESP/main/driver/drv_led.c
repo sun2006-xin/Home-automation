@@ -49,7 +49,8 @@ esp_err_t drv_led_init(void) {
     if (err != ESP_OK) return err;
 
     set_led(0);
-    xTaskCreate(led_task, "led_task", 1536, NULL, 2, NULL);
+    /* ESP32-S3 Xtensa LX7 最小推荐栈 >= 2048B，避免跨核上下文保存溢出 */
+    xTaskCreate(led_task, "led_task", 2048, NULL, 2, NULL);
     return ESP_OK;
 }
 

@@ -24,16 +24,16 @@
 
 ## 现在做到哪了
 
-> **最新进度（v2.2 · 2026-11-11）**：已完成 **PC 云端中枢 + 壁挂中控终端 + 类米家手机控制端** 三端全双工 WebSocket 实时同步与多真机实测；MCU 固件框架与板级适配引擎已建仓，下一步正式进入 **MQTT 协议桥接、自动化规则引擎与 ESP32-C3 硬件上板实测**。
+> **最新进度（v2.3 · 2026-11-11 · 已开源）**：仓库正式切换为 **Apache-2.0 开源公共仓库**；完成 `nodeESP` 固件 **ESP32-S3 / ESP32-C3 一码双芯** 引脚安全与栈空间加固并双双编译通过（S3 App `1,094,544 B`，静态 DIRAM 余 `204,945 B`）；云端中枢新增 **M2 MQTT 总线桥接器 + M5 自动化规则引擎（cooldown 防抖与审计日志）+ S3 虚拟节点仿真台**（5 项单元与 API 集成测试全部通过），等待插入 ESP32-S3 实板烧录与真机联动。
 
 | 模块 | 状态 | 最新进展摘要 |
 |---|---|---|
-| 规划与架构文档 | ✅ 完成 | 15+ 份完整设计文档（`v2.1` 三阶梯融合接入体系与 12V 模拟规范） |
-| **云端中枢与 Web 控制台** | ✅ 已跑通 | `FastAPI + SQLite WAL + WebSocket`；白色极简 Bento 控制台、一键场景与 SVG 审计曲线（[`SmartHome/cloud/`](SmartHome/cloud/)） |
+| 规划与架构文档 | ✅ 完成 | 15+ 份完整设计文档（`v2.1` 三阶梯融合接入体系与 12V 模拟规范），仓库已以 Apache-2.0 公开开源 |
+| **云端中枢 + 联动引擎 (M2/M5)** | ✅ 测试通过 | `FastAPI + SQLite WAL + WebSocket + MQTT Bridge + 规则联动引擎`；含白色 Bento 控制台、S3 节点仿真台与联动审计（[`SmartHome/cloud/`](SmartHome/cloud/)） |
 | **旧手机壁挂终端 (Kiosk)** | ✅ 真机验证 | `OPPO A79kt` 实测：专机防误退锁定、分层电器卡组、音量键盲操场景、双向实时同步（[`SmartHome/host/terminal/`](SmartHome/host/terminal/)） |
 | **手机伴侣 App (类米家)** | ✅ 真机验证 | `PEHM00` 实测：竖屏白色极简首页、设备卡片/温控滑条弹窗、场景执行与云端切换（[`SmartHome/host/app/`](SmartHome/host/app/)） |
-| **MCU 固件与多芯片引擎** | 🟡 骨架就绪 | `ESP32-C3` M1/M2 框架（BLE/WiFi/MQTT/GPIO）与多 MCU 自适应屏幕/调试器，待实板焊接调通（[`SmartHome/firmware/`](SmartHome/firmware/)） |
-| **物理硬件与自动化规则** | ⬜ 下一阶段 | 采购 C3/步进/继电器上板实测；补齐云端 MQTT Bridge 与跨设备条件规则引擎（M1–M5） |
+| **MCU 固件 (`S3` / `C3` 双芯)** | ✅ 双芯过编 | `ESP32-S3` 与 `ESP32-C3` 双目标 `idf.py build` 通过并输出预编译产物（[`SmartHome/firmware/nodeESP/`](SmartHome/firmware/nodeESP/)），待连线 S3 实板烧录调试 |
+| **物理硬件闭环实测** | ⬜ 下一阶段 | 接入 ESP32-S3 开发板 + ULN2003 步进驱动烧录实测（`flash.ps1 -Chip esp32s3`），跑通本地 Mosquitto/EMQX 真实组网与多节点联动（M1–M4） |
 
 ---
 

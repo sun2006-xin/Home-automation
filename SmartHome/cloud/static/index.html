@@ -1050,6 +1050,52 @@
       font-size: 12px;
     }
 
+    .rule-card {
+      background: var(--bg-canvas);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      padding: 14px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .rule-card-meta {
+      font-size: 12px;
+      color: var(--text-secondary);
+      margin-block-start: 4px;
+      line-height: 1.5;
+    }
+
+    .rule-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 11px;
+      font-weight: 600;
+      padding: 2px 8px;
+      border-radius: var(--radius-pill);
+      background: var(--accent-blue-soft);
+      color: var(--accent-blue);
+    }
+
+    .form-grid-2 {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .cloud-input, .cloud-select {
+      inline-size: 100%;
+      padding: 8px 11px;
+      border-radius: var(--radius-md);
+      border: 1px solid var(--border-strong);
+      background: var(--surface);
+      font-size: 13px;
+      color: var(--text-primary);
+    }
+
     .ws-log-box {
       background: #F8FAFC;
       border: 1px solid var(--border-subtle);
@@ -1184,7 +1230,7 @@
         <div class="proto-pills">
           <span class="proto-pill">REST/JSON</span>
           <span class="proto-pill">WebSocket</span>
-          <span class="proto-pill">SQLite WAL</span>
+          <span class="proto-pill" id="sideMqttPill">MQTT 待连</span>
         </div>
       </div>
     </aside>
@@ -1212,6 +1258,18 @@
             <span class="status-dot"></span>
             <span id="cloudStatusText">云端连接中</span>
           </div>
+          <button type="button" class="btn-ghost" id="btnAutomation">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+              <path d="M12 2v4"/><path d="m16.2 7.8 2.9-2.9"/><path d="M18 12h4"/><path d="m16.2 16.2 2.9 2.9"/><path d="M12 18v4"/><path d="m4.9 19.1 2.9-2.9"/><path d="M2 12h4"/><path d="m4.9 4.9 2.9 2.9"/>
+            </svg>
+            联动规则 (<span id="ruleCountBadge">0</span>)
+          </button>
+          <button type="button" class="btn-ghost" id="btnSimLab" title="模拟 ESP32-S3 节点 MQTT 上行事件">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+              <rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/><path d="M15 2v2"/><path d="M15 20v2"/><path d="M2 15h2"/><path d="M2 9h2"/><path d="M20 15h2"/><path d="M20 9h2"/><path d="M9 2v2"/><path d="M9 20v2"/>
+            </svg>
+            S3 节点仿真
+          </button>
           <button type="button" class="btn-ghost" id="btnEventLog">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
               <path d="M4 12h4l3-7 4 14 3-7h4"/>
@@ -1405,6 +1463,60 @@
     </div>
   </dialog>
 
+  <!-- Native Modal Dialog: M5 Automation Rules Engine -->
+  <dialog id="automationModal" class="cloud-dialog" aria-labelledby="autoModalTitle">
+    <div class="dialog-head">
+      <div>
+        <h3 id="autoModalTitle">全屋自动化联动引擎 (Phase M5)</h3>
+        <div style="font-size: 12px; color: var(--text-muted); margin-block-start: 2px;">状态变化实时评估触发，含 cooldown 防抖与操作审计</div>
+      </div>
+      <button type="button" class="btn-ghost" id="btnCloseAutoModal">关闭</button>
+    </div>
+    <div class="dialog-body">
+      <div id="rulesListBox" class="history-list"></div>
+      <div style="border-block-start: 1px solid var(--border-subtle); padding-block-start: 14px;">
+        <div style="font-size: 13px; font-weight: 700; margin-block-end: 10px;">最近联动执行记录</div>
+        <div id="ruleLogsBox" class="history-list"></div>
+      </div>
+    </div>
+  </dialog>
+
+  <!-- Native Modal Dialog: ESP32-S3 Hardware & MQTT Bus Simulator -->
+  <dialog id="simModal" class="cloud-dialog" aria-labelledby="simModalTitle">
+    <div class="dialog-head">
+      <div>
+        <h3 id="simModalTitle">ESP32-S3 节点与 MQTT 总线测试台</h3>
+        <div id="mqttBridgeStatusText" style="font-size: 12px; color: var(--text-muted); margin-block-start: 2px;">检测云端 MQTT 桥接态...</div>
+      </div>
+      <button type="button" class="btn-ghost" id="btnCloseSimModal">关闭</button>
+    </div>
+    <div class="dialog-body">
+      <div class="rule-card" style="flex-direction: column; align-items: stretch;">
+        <div style="font-size: 13px; font-weight: 700;">快捷模拟 ESP32-S3 节点上报报文 (sh/h01/...)</div>
+        <div style="display:flex; flex-wrap:wrap; gap:8px;">
+          <button type="button" class="btn-ghost" id="btnSimCurtain100">C01 上报全开 100% (触发联动关客厅灯)</button>
+          <button type="button" class="btn-ghost" id="btnSimCurtain20">C01 上报开度 20%</button>
+          <button type="button" class="btn-ghost" id="btnSimS01Off">S01 上报断电 (联动关书房灯)</button>
+          <button type="button" class="btn-ghost" id="btnSimDiscovery">注册虚拟 ESP32-S3 温湿度节点 T01</button>
+        </div>
+      </div>
+      <div>
+        <div style="font-size: 13px; font-weight: 700; margin-block-end: 8px;">自定义 MQTT 上行注入</div>
+        <div class="form-grid-2">
+          <input id="simDeviceId" class="cloud-input" value="C01" placeholder="设备 ID (如 C01)" />
+          <select id="simChannel" class="cloud-select">
+            <option value="state">channel: state</option>
+            <option value="online">channel: online</option>
+          </select>
+        </div>
+        <input id="simPayloadJson" class="cloud-input" style="margin-block-start: 8px;" value='{"v":1,"d":"C01","st":{"pos":100,"moving":0}}' placeholder="JSON 或 '1'/'0'" />
+        <div style="display:flex; justify-content:flex-end; margin-block-start:10px;">
+          <button type="button" class="filter-chip active" id="btnSimInject">注入云端管线</button>
+        </div>
+      </div>
+    </div>
+  </dialog>
+
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
   <script>
@@ -1442,10 +1554,15 @@
       terminal_kiosk: '客厅壁挂终端',
       app: '手机米家 App',
       mcu: '硬件 MCU 节点',
+      'mqtt:state': 'ESP32 MQTT 状态上报',
+      'mqtt:online': 'ESP32 MQTT 上下线',
     };
 
     function formatSource(src) {
       if (!src) return '系统默认';
+      if (src.startsWith('rule:')) {
+        return `自动化联动 (${src.slice(5)})`;
+      }
       if (src.includes(':scene:')) {
         const parts = src.split(':scene:');
         const base = SOURCE_NAMES[parts[0]] || parts[0];
@@ -1672,6 +1789,12 @@
             if (Array.isArray(p.devices)) state.devices = p.devices;
             if (Array.isArray(p.rooms)) state.rooms = p.rooms;
             renderAll();
+          } else if (msg.type === 'RULE_TRIGGERED') {
+            const p = msg.payload || {};
+            showToast(`联动触发「${p.rule_name || p.rule_id}」: ${p.detail || ''}`);
+            if (document.getElementById('automationModal').open) {
+              loadAutomationData();
+            }
           }
         } catch (e) {
           appendWsLog('RAW ' + ev.data);
@@ -2163,11 +2286,139 @@
       document.getElementById('deviceModal').close();
     });
 
+    async function loadAutomationData() {
+      const listEl = document.getElementById('rulesListBox');
+      const logsEl = document.getElementById('ruleLogsBox');
+      try {
+        const [rulesRes, logsRes] = await Promise.all([
+          fetch('/api/v1/rules'),
+          fetch('/api/v1/rules/logs?limit=12'),
+        ]);
+        const rules = await rulesRes.json();
+        const logs = await logsRes.json();
+        document.getElementById('ruleCountBadge').textContent = String(rules.filter(r => r.enabled).length);
+
+        listEl.innerHTML = rules.map(r => `
+          <div class="rule-card">
+            <div style="min-inline-size:0;">
+              <div style="font-size:14px; font-weight:700; display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                <span>${escapeHtml(r.name)}</span>
+                <span class="rule-pill">已触发 ${r.trigger_count} 次 · 冷却 ${r.cooldown_s}s</span>
+              </div>
+              <div class="rule-card-meta">
+                当 <strong>${escapeHtml(r.trigger.dev)}.${escapeHtml(r.trigger.attr)}</strong> ${escapeHtml(r.trigger.op)} ${escapeHtml(String(r.trigger.val))}
+                → 执行 ${(r.actions || []).map(a => `${escapeHtml(a.dev)}(${escapeHtml(JSON.stringify(a.state))})`).join(', ')}
+              </div>
+            </div>
+            <div style="display:flex; align-items:center; gap:8px; flex-shrink:0;">
+              <button type="button" class="btn-ghost" onclick="runRuleManual('${escapeHtml(r.id)}')">试跑</button>
+              <input type="checkbox" class="apple-switch" ${r.enabled ? 'checked' : ''} aria-label="切换联动规则启用状态" onchange="toggleRuleEnabled('${escapeHtml(r.id)}', this.checked)" />
+            </div>
+          </div>
+        `).join('') || '<div class="history-row">暂无联动规则</div>';
+
+        logsEl.innerHTML = logs.map(l => `
+          <div class="history-row">
+            <span><strong>${escapeHtml(l.rule_name)}</strong> · ${escapeHtml(l.detail)}</span>
+            <span style="color:var(--text-muted); flex-shrink:0;">${new Date(l.triggered_at * 1000).toLocaleTimeString('zh-CN', { hour12: false })}</span>
+          </div>
+        `).join('') || '<div class="history-row">尚无联动触发记录</div>';
+      } catch (err) {
+        listEl.innerHTML = `<div class="history-row">规则加载失败: ${escapeHtml(err.message)}</div>`;
+      }
+    }
+
+    async function toggleRuleEnabled(ruleId, enabled) {
+      await fetch(`/api/v1/rules/${encodeURIComponent(ruleId)}/toggle?enabled=${enabled}`, { method: 'PATCH' });
+      showToast(enabled ? '已启用联动规则' : '已暂停联动规则');
+      loadAutomationData();
+    }
+
+    async function runRuleManual(ruleId) {
+      const res = await fetch(`/api/v1/rules/${encodeURIComponent(ruleId)}/run`, { method: 'POST' });
+      const data = await res.json();
+      showToast(`手动试跑: ${data.execution?.detail || '已下发'}`);
+      loadAutomationData();
+      fetchCloudSnapshot(true);
+    }
+
+    async function refreshMqttStatus() {
+      try {
+        const res = await fetch('/api/v1/mqtt/status');
+        const st = await res.json();
+        const pill = document.getElementById('sideMqttPill');
+        if (pill) {
+          pill.textContent = st.enabled ? (st.connected ? 'MQTT 在线' : 'MQTT 重连中') : 'MQTT Bridge 待启用';
+        }
+        const label = document.getElementById('mqttBridgeStatusText');
+        if (label) {
+          label.textContent = st.enabled
+            ? `Broker ${st.broker} · ${st.connected ? '已连接' : '连接中'} · 收${st.rx_count}/发${st.tx_count}`
+            : `本地桥接待命 (${st.broker}) · 支持虚拟节点测试注入 · 累计收包 ${st.rx_count}`;
+        }
+      } catch (_) {}
+    }
+
+    async function injectSimEvent(deviceId, channel, payload) {
+      const res = await fetch('/api/v1/simulator/node-event', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ device_id: deviceId, channel, payload }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        showToast(`注入失败: ${err.detail || res.status}`);
+        return;
+      }
+      showToast(`已模拟 ${deviceId} MQTT ${channel} 上行`);
+      refreshMqttStatus();
+      fetchCloudSnapshot(true);
+    }
+
+    document.getElementById('btnAutomation').addEventListener('click', () => {
+      document.getElementById('automationModal').showModal();
+      loadAutomationData();
+    });
+    document.getElementById('btnCloseAutoModal').addEventListener('click', () => {
+      document.getElementById('automationModal').close();
+    });
+    document.getElementById('btnSimLab').addEventListener('click', () => {
+      document.getElementById('simModal').showModal();
+      refreshMqttStatus();
+    });
+    document.getElementById('btnCloseSimModal').addEventListener('click', () => {
+      document.getElementById('simModal').close();
+    });
+    document.getElementById('btnSimCurtain100').addEventListener('click', () => {
+      injectSimEvent('C01', 'state', { v: 1, d: 'C01', st: { pos: 100, moving: 0 } });
+    });
+    document.getElementById('btnSimCurtain20').addEventListener('click', () => {
+      injectSimEvent('C01', 'state', { v: 1, d: 'C01', st: { pos: 20, moving: 0 } });
+    });
+    document.getElementById('btnSimS01Off').addEventListener('click', () => {
+      injectSimEvent('S01', 'state', { v: 1, d: 'S01', st: { on: false } });
+    });
+    document.getElementById('btnSimDiscovery').addEventListener('click', () => {
+      injectSimEvent('T01', '_discovery', { id: 'T01', name: 'ESP32-S3 环境节点', room: '客厅', type: 'climate', subtype: 'sensor', state: { on: true, temperature: 25.4, humidity: 49, online: true } });
+    });
+    document.getElementById('btnSimInject').addEventListener('click', () => {
+      const devId = document.getElementById('simDeviceId').value.trim() || 'C01';
+      const channel = document.getElementById('simChannel').value;
+      const raw = document.getElementById('simPayloadJson').value.trim();
+      let payload = raw;
+      if (channel !== 'online') {
+        try { payload = JSON.parse(raw); } catch (_) {}
+      }
+      injectSimEvent(devId, channel, payload);
+    });
+
     // Boot
     updateClock();
     setInterval(updateClock, 1000);
     setInterval(sendPing, 8000);
     fetchCloudSnapshot(false);
+    loadAutomationData();
+    refreshMqttStatus();
     connectWebSocket();
   </script>
 </body>

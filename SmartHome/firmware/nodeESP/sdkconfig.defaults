@@ -1,18 +1,18 @@
-# Target configuration for ESP32-C3 SuperMini
-CONFIG_IDF_TARGET="esp32c3"
+# 通用基础配置 (兼容 ESP32-S3 / ESP32-C3，目标芯片由 sdkconfig.defaults.<target> 或 idf.py set-target 指定)
 
-# Bluetooth configuration: NimBLE (轻量级，低内存消耗，C3 首选)
+# Bluetooth configuration: NimBLE (轻量级，低内存消耗)
 CONFIG_BT_ENABLED=y
 CONFIG_BT_NIMBLE_ENABLED=y
 CONFIG_BT_NIMBLE_MEM_ALLOC_MODE_INTERNAL=y
 
-# FreeRTOS 系统时钟
+# FreeRTOS 系统时钟与主任务栈空间 (兼顾 Xtensa LX7 与 RISC-V)
 CONFIG_FREERTOS_HZ=1000
+CONFIG_ESP_MAIN_TASK_STACK_SIZE=4096
 
 # 日志输出等级
 CONFIG_LOG_DEFAULT_LEVEL_INFO=y
 
-# 4MB Flash
+# 4MB 兼容基础 Flash 大小 (同时兼容 4MB C3 与 4MB/8MB/16MB S3 开发板)
 CONFIG_ESPTOOLPY_FLASHSIZE_4MB=y
 
 # 自定义分区表 (App 分区扩容至 3MB，保障 BLE + WiFi + MQTT 双模运行)
