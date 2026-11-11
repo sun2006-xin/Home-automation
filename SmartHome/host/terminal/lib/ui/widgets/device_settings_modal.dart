@@ -136,25 +136,31 @@ class _DeviceSettingsModalState extends State<DeviceSettingsModal> with SingleTi
 
           Row(
             children: [
-              const Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    '智慧终端 · 房间与设备工程设置',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
+              const Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '智慧终端 · 房间与设备工程设置',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
-                  ),
-                  SizedBox(height: 2),
-                  Text(
-                    '支持多朝向卧室划分、电器归属重设与背景壁纸切换',
-                    style: TextStyle(color: TerminalTheme.textSecondary, fontSize: 12),
-                  ),
-                ],
+                    SizedBox(height: 2),
+                    Text(
+                      '支持多朝向卧室划分、电器归属重设与云端公网配置',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(color: TerminalTheme.textSecondary, fontSize: 11),
+                    ),
+                  ],
+                ),
               ),
-              const Spacer(),
+              const SizedBox(width: 12),
 
               // 设为默认桌面按钮（彻底杜绝按Home键切出系统）
               GestureDetector(
@@ -171,41 +177,41 @@ class _DeviceSettingsModalState extends State<DeviceSettingsModal> with SingleTi
                   }
                 },
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
                   decoration: BoxDecoration(
                     color: const Color(0x330984E3),
-                    borderRadius: BorderRadius.circular(10),
+                    borderRadius: BorderRadius.circular(8),
                     border: Border.all(color: const Color(0x6674B9FF)),
                   ),
                   child: const Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(Icons.home_work_rounded, size: 14, color: Color(0xFF74B9FF)),
+                      Icon(Icons.home_work_rounded, size: 13, color: Color(0xFF74B9FF)),
                       SizedBox(width: 4),
                       Text(
-                        '设为默认桌面',
+                        '默认桌面',
                         style: TextStyle(color: Color(0xFF74B9FF), fontSize: 11, fontWeight: FontWeight.bold),
                       ),
                     ],
                   ),
                 ),
               ),
-              const SizedBox(width: 10),
+              const SizedBox(width: 6),
 
               // 退出终端按钮 (带安全防误触确认弹窗)
               GestureDetector(
                 onTap: () => _showExitTerminalDialog(context),
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
                   decoration: BoxDecoration(
                     color: const Color(0x33E74C3C),
-                    borderRadius: BorderRadius.circular(10),
+                    borderRadius: BorderRadius.circular(8),
                     border: Border.all(color: const Color(0x66E74C3C)),
                   ),
                   child: const Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(Icons.power_settings_new_rounded, size: 14, color: Color(0xFFFF7675)),
+                      Icon(Icons.power_settings_new_rounded, size: 13, color: Color(0xFFFF7675)),
                       SizedBox(width: 4),
                       Text(
                         '退出终端',
@@ -215,7 +221,7 @@ class _DeviceSettingsModalState extends State<DeviceSettingsModal> with SingleTi
                   ),
                 ),
               ),
-              const SizedBox(width: 10),
+              const SizedBox(width: 6),
 
               // 温馨背景壁纸开关
               GestureDetector(
@@ -224,12 +230,12 @@ class _DeviceSettingsModalState extends State<DeviceSettingsModal> with SingleTi
                   setState(() {});
                 },
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
                   decoration: BoxDecoration(
                     color: widget.state.useWarmHomeBackground
                         ? TerminalTheme.amberPrimary.withValues(alpha: 0.2)
                         : Colors.white.withValues(alpha: 0.08),
-                    borderRadius: BorderRadius.circular(10),
+                    borderRadius: BorderRadius.circular(8),
                     border: Border.all(
                       color: widget.state.useWarmHomeBackground
                           ? TerminalTheme.amberPrimary
@@ -243,14 +249,14 @@ class _DeviceSettingsModalState extends State<DeviceSettingsModal> with SingleTi
                         widget.state.useWarmHomeBackground
                             ? Icons.home_rounded
                             : Icons.nightlight_round,
-                        size: 14,
+                        size: 13,
                         color: widget.state.useWarmHomeBackground
                             ? TerminalTheme.amberPrimary
                             : TerminalTheme.textSecondary,
                       ),
                       const SizedBox(width: 4),
                       Text(
-                        widget.state.useWarmHomeBackground ? '家庭实景背景' : '极简深空黑',
+                        widget.state.useWarmHomeBackground ? '温馨实景' : '深空黑',
                         style: TextStyle(
                           color: widget.state.useWarmHomeBackground
                               ? TerminalTheme.amberPrimary
@@ -267,15 +273,18 @@ class _DeviceSettingsModalState extends State<DeviceSettingsModal> with SingleTi
           ),
           const SizedBox(height: 12),
 
-          // 选项卡：【设备清单与分配】与【房间朝向管理】
+          // 选项卡：【设备清单与分配】与【房间朝向管理】与【云端同步】
           Container(
-            height: 34,
+            height: 36,
+            padding: const EdgeInsets.all(2),
             decoration: BoxDecoration(
               color: Colors.white.withValues(alpha: 0.05),
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(10),
             ),
             child: TabBar(
               controller: _tabController,
+              indicatorSize: TabBarIndicatorSize.tab,
+              dividerColor: Colors.transparent,
               indicator: BoxDecoration(
                 color: const Color(0xFF6C5CE7),
                 borderRadius: BorderRadius.circular(8),

@@ -534,15 +534,19 @@ class CategoryClusterDeck extends StatelessWidget {
       children: [
         Icon(icon, color: iconColor, size: 16),
         const SizedBox(width: 4),
-        Text(
-          title,
-          style: const TextStyle(
-            color: Colors.white,
-            fontSize: 12,
-            fontWeight: FontWeight.bold,
+        Flexible(
+          child: Text(
+            title,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 12,
+              fontWeight: FontWeight.bold,
+            ),
           ),
         ),
-        const Spacer(),
+        const SizedBox(width: 4),
         // 翻页器
         GestureDetector(
           onTap: onPrev,
@@ -631,6 +635,7 @@ class CategoryClusterDeck extends StatelessWidget {
       onTap: onTap,
       child: Container(
         height: 26,
+        padding: const EdgeInsets.symmetric(horizontal: 10),
         decoration: BoxDecoration(
           color: active
               ? (isWarm ? activeColor.withValues(alpha: 0.35) : activeColor.withValues(alpha: 0.25))

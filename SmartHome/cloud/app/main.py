@@ -197,6 +197,85 @@ def get_telemetry(device_id: str, limit: int = 50):
     """获取指定设备的历史状态变化轨迹"""
     return database.get_telemetry_history(device_id, limit=limit)
 
+SCENE_NAMES = {
+    "home": "回家模式",
+    "away": "离家警戒",
+    "sleep": "舒适睡眠",
+    "all_off": "一键全关",
+    "all_lights_off": "全屋关灯",
+    "all_lights_on": "全屋照明",
+}
+
+def _resolve_scene_state(scene_id: str, dev: DeviceItem) -> Optional[dict]:
+    """Compute target state delta for a device under a scene trigger."""
+    if scene_id == "home":
+        if dev.type == "cover":
+            return {"pos": 100}
+        if dev.id == "L01" or (dev.room == "客厅" and dev.subtype == "light"):
+            return {"on": True}
+        if dev.id == "AC01":
+            return {"on": True}
+    elif scene_id == "away":
+        if dev.type in ("switch", "climate"):
+            return {"on": False}
+        if dev.type == "cover":
+            return {"pos": 0}
+    elif scene_id == "sleep":
+        if dev.type == "switch":
+            return {"on": False}
+        if dev.type == "cover":
+            return {"pos": 0}
+        if dev.type == "climate":
+            if dev.room == "主卧":
+                return {"on": True, "targetTemp": 26.0, "mode": "cool"}
+            return {"on": False}
+    elif scene_id == "all_off":
+        if dev.type in ("switch", "climate", "heater"):
+            return {"on": False}
+    elif scene_id == "all_lights_off":
+        if dev.type == "switch" and dev.subtype == "light":
+            return {"on": False}
+    elif scene_id == "all_lights_on":
+        if dev.type == "switch" and dev.subtype == "light":
+            return {"on": True}
+    return None
+
+@app.post("/api/v1/scenes/{scene_id}/trigger")
+async def trigger_scene(scene_id: str, src: str = Query("cloud")):
+    """触发全屋快捷场景并同步广播至所有云端及终端节点"""
+    if scene_id not in SCENE_NAMES:
+        raise HTTPException(status_code=404, detail=f"Unknown scene: {scene_id}")
+
+    devices = database.get_all_devices()
+    updated_ids: List[str] = []
+    for dev in devices:
+        delta = _resolve_scene_state(scene_id, dev)
+        if delta is not None:
+            database.update_device_state(dev.id, delta, src=f"{src}:scene:{scene_id}")
+            updated_ids.append(dev.id)
+
+    all_devs = database.get_all_devices()
+    all_rooms = database.get_rooms()
+    await sync_manager.broadcast(WebSocketEnvelope(
+        type="SNAPSHOT_SYNC",
+        payload={
+            "scene_id": scene_id,
+            "scene_name": SCENE_NAMES[scene_id],
+            "src": src,
+            "devices": [d.model_dump() for d in all_devs],
+            "rooms": all_rooms
+        }
+    ))
+
+    return {
+        "success": True,
+        "scene_id": scene_id,
+        "scene_name": SCENE_NAMES[scene_id],
+        "updated_count": len(updated_ids),
+        "updated_ids": updated_ids,
+        "devices": all_devs,
+    }
+
 # --- WebSocket 终端长连接信道 ---
 
 @app.websocket("/ws/terminal")

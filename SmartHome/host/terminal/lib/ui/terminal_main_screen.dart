@@ -83,12 +83,12 @@ class _TerminalMainScreenState extends State<TerminalMainScreen> {
     );
   }
 
-  /// 顶部导航与状态总览栏
+  /// 顶部导航与状态总览栏 (严格 8pt 栅格与响应式防溢出布局)
   Widget _buildTopHeaderBar(String timeStr, String dateStr, bool isAway) {
     final isWarm = widget.state.useWarmHomeBackground;
 
     return Container(
-      height: 38,
+      height: 40,
       padding: const EdgeInsets.symmetric(horizontal: 12),
       decoration: BoxDecoration(
         color: isWarm ? TerminalTheme.warmTopBarBg : const Color(0xFF131822).withValues(alpha: 0.72),
@@ -100,141 +100,171 @@ class _TerminalMainScreenState extends State<TerminalMainScreen> {
       ),
       child: Row(
         children: [
-          // 终端主标题：智慧家居终端
-          Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                width: 8,
-                height: 8,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
+          // 1. 左侧固定区：品牌标题 + 安防守护 + 云端同步状态
+          Container(
+            width: 8,
+            height: 8,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: isWarm ? TerminalTheme.amberWarm : const Color(0xFF00E676),
+              boxShadow: [
+                BoxShadow(
                   color: isWarm ? TerminalTheme.amberWarm : const Color(0xFF00E676),
-                  boxShadow: [
-                    BoxShadow(
-                      color: isWarm ? TerminalTheme.amberWarm : const Color(0xFF00E676),
-                      blurRadius: 6,
-                      spreadRadius: 1,
-                    ),
-                  ],
+                  blurRadius: 6,
+                  spreadRadius: 1,
                 ),
-              ),
-              const SizedBox(width: 6),
-              Text(
-                '智慧家居终端',
-                style: TextStyle(
-                  color: isWarm ? TerminalTheme.warmTextPrimary : Colors.white,
-                  fontSize: 14,
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: 0.5,
-                ),
-              ),
-            ],
+              ],
+            ),
           ),
-          const SizedBox(width: 10),
+          const SizedBox(width: 6),
+          Text(
+            '智慧家居终端',
+            style: TextStyle(
+              color: isWarm ? TerminalTheme.warmTextPrimary : Colors.white,
+              fontSize: 13,
+              fontWeight: FontWeight.bold,
+              letterSpacing: 0.4,
+            ),
+          ),
+          const SizedBox(width: 8),
 
           // 安防守护状态 Chip
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
             decoration: BoxDecoration(
               color: isAway
                   ? (isWarm ? const Color(0x66B33927) : const Color(0xFF6C5CE7).withValues(alpha: 0.25))
                   : (isWarm ? const Color(0x554A3B2C) : const Color(0xFF00E676).withValues(alpha: 0.15)),
-              borderRadius: BorderRadius.circular(10),
+              borderRadius: BorderRadius.circular(8),
               border: Border.all(
                 color: isAway
                     ? (isWarm ? const Color(0xFFE17055) : const Color(0xFFA29BFE))
                     : (isWarm ? TerminalTheme.amberWarm : const Color(0xFF00E676).withValues(alpha: 0.5)),
               ),
             ),
-            child: Text(
-              isAway ? '🛡️ 离家布防' : '🏠 居家守护',
-              style: TextStyle(
-                color: isAway
-                    ? (isWarm ? const Color(0xFFFAB1A0) : const Color(0xFFA29BFE))
-                    : (isWarm ? TerminalTheme.amberWarm : const Color(0xFF00E676)),
-                fontSize: 10,
-                fontWeight: FontWeight.bold,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  isAway ? Icons.shield_outlined : Icons.home_outlined,
+                  size: 11,
+                  color: isAway
+                      ? (isWarm ? const Color(0xFFFAB1A0) : const Color(0xFFA29BFE))
+                      : (isWarm ? TerminalTheme.amberWarm : const Color(0xFF00E676)),
+                ),
+                const SizedBox(width: 3),
+                Text(
+                  isAway ? '离家布防' : '居家守护',
+                  style: TextStyle(
+                    color: isAway
+                        ? (isWarm ? const Color(0xFFFAB1A0) : const Color(0xFFA29BFE))
+                        : (isWarm ? TerminalTheme.amberWarm : const Color(0xFF00E676)),
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 6),
+
+          // 云端同步状态 Chip (去重双图标，仅保留单一云朵图标)
+          _buildCloudStatusChip(isWarm),
+
+          // 2. 中间自适应区：时间、日期、温湿度传感器 (FittedBox 杜绝任何屏幕宽度下的 RenderFlex 溢出)
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                alignment: Alignment.center,
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      timeStr,
+                      style: TextStyle(
+                        color: isWarm ? TerminalTheme.warmTextPrimary : Colors.white,
+                        fontSize: 15,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: -0.4,
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      dateStr,
+                      style: TextStyle(
+                        color: isWarm ? TerminalTheme.warmTextSecondary : TerminalTheme.textSecondary,
+                        fontSize: 11,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: isWarm ? const Color(0x4036271D) : Colors.white.withValues(alpha: 0.06),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(
+                          color: isWarm ? TerminalTheme.warmCardBorder.withValues(alpha: 0.4) : Colors.transparent,
+                        ),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.thermostat_rounded,
+                            size: 12,
+                            color: isWarm ? TerminalTheme.amberWarm : TerminalTheme.cyanCool,
+                          ),
+                          const SizedBox(width: 2),
+                          Text(
+                            '${widget.state.sensors.indoorTemp.toStringAsFixed(1)}°C',
+                            style: TextStyle(
+                              color: isWarm ? TerminalTheme.warmTextPrimary : TerminalTheme.textPrimary,
+                              fontSize: 11,
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          Icon(
+                            Icons.water_drop_outlined,
+                            size: 11,
+                            color: isWarm ? TerminalTheme.cyanCool : TerminalTheme.cyanCool,
+                          ),
+                          const SizedBox(width: 2),
+                          Text(
+                            '${widget.state.sensors.humidity.toInt()}%',
+                            style: TextStyle(
+                              color: isWarm ? TerminalTheme.warmTextPrimary : TerminalTheme.textPrimary,
+                              fontSize: 11,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
+
+          // 3. 右侧固定区：紧凑物理按键指引 + 工程设置入口
+          _buildKeyGuideChip('音量±', '回家/离家', isWarm),
           const SizedBox(width: 8),
 
-          // 云端公网全双工同步状态 Chip
-          _buildCloudStatusChip(isWarm),
-
-          const Spacer(),
-
-          // 中间：时间与温湿度胶囊
-          Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                timeStr,
-                style: TextStyle(
-                  color: isWarm ? TerminalTheme.warmTextPrimary : Colors.white,
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: -0.5,
-                ),
-              ),
-              const SizedBox(width: 6),
-              Text(
-                dateStr,
-                style: TextStyle(
-                  color: isWarm ? TerminalTheme.warmTextSecondary : TerminalTheme.textSecondary,
-                  fontSize: 11,
-                ),
-              ),
-              const SizedBox(width: 12),
-              // 环境传感器
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                decoration: BoxDecoration(
-                  color: isWarm ? const Color(0x4036271D) : Colors.white.withValues(alpha: 0.06),
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(
-                    color: isWarm ? TerminalTheme.warmCardBorder.withValues(alpha: 0.4) : Colors.transparent,
-                  ),
-                ),
-                child: Text(
-                  '🌡️ ${widget.state.sensors.indoorTemp.toStringAsFixed(1)}°C  💧 ${widget.state.sensors.humidity.toInt()}%',
-                  style: TextStyle(
-                    color: isWarm ? TerminalTheme.warmTextPrimary : TerminalTheme.textPrimary,
-                    fontSize: 11,
-                  ),
-                ),
-              ),
-            ],
-          ),
-
-          const Spacer(),
-
-          // 右侧：物理按键指引
-          Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              _buildKeyGuideChip('音量+', '回家', isWarm),
-              const SizedBox(width: 4),
-              _buildKeyGuideChip('音量-', '离家', isWarm),
-            ],
-          ),
-          const SizedBox(width: 8),
-
-          // 设置管理入口
+          // 设置管理入口 (严格固定在最右侧，绝不被挤出屏幕)
           GestureDetector(
             onTap: () => _openSettingsModal(context),
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
               decoration: BoxDecoration(
                 color: isWarm
-                    ? TerminalTheme.warmButtonActive.withValues(alpha: 0.3)
-                    : TerminalTheme.amberPrimary.withValues(alpha: 0.15),
-                borderRadius: BorderRadius.circular(6),
+                    ? TerminalTheme.warmButtonActive.withValues(alpha: 0.35)
+                    : TerminalTheme.amberPrimary.withValues(alpha: 0.18),
+                borderRadius: BorderRadius.circular(8),
                 border: Border.all(
                   color: isWarm
-                      ? TerminalTheme.warmCardBorder
-                      : TerminalTheme.amberPrimary.withValues(alpha: 0.5),
+                      ? TerminalTheme.amberWarm.withValues(alpha: 0.7)
+                      : TerminalTheme.amberPrimary.withValues(alpha: 0.6),
                 ),
               ),
               child: Row(
@@ -313,19 +343,19 @@ class _TerminalMainScreenState extends State<TerminalMainScreen> {
       bgColor = isWarm ? const Color(0x332ECC71) : const Color(0x222ECC71);
       borderColor = const Color(0x662ECC71);
       textColor = const Color(0xFF2ECC71);
-      text = '☁️ 云端已同步';
+      text = '云端已同步';
       icon = Icons.cloud_done_rounded;
     } else if (isSyncing || isConnecting) {
       bgColor = isWarm ? const Color(0x33F39C12) : const Color(0x22F39C12);
       borderColor = const Color(0x66F39C12);
       textColor = const Color(0xFFF39C12);
-      text = isSyncing ? '☁️ 数据同步中' : '☁️ 云端连接中';
+      text = isSyncing ? '同步中' : '连接中';
       icon = Icons.cloud_sync_rounded;
     } else {
       bgColor = Colors.white.withValues(alpha: 0.05);
       borderColor = Colors.white24;
       textColor = TerminalTheme.textSecondary;
-      text = '☁️ 离线模式';
+      text = '离线模式';
       icon = Icons.cloud_off_rounded;
     }
 
